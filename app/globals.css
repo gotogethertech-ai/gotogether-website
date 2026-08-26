@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   GoTogether design tokens
+   Source: gotogether_web_design/ "Website Navigation UI", "Homepage",
+   "Auth Modal" .dc.html visual specs (approved design set).
+   All colors are oklch, matching the design docs verbatim.
+--------------------------------------------------------------------- */
+:root {
+  /* Brand */
+  --color-primary: oklch(52% 0.18 255); /* primary blue - links, active nav, focus rings */
+  --color-primary-hover: oklch(45% 0.18 255);
+  --color-secondary: oklch(58% 0.1 185); /* teal accent - logo second ring, icons */
+  --color-accent: oklch(68% 0.17 45); /* orange - Create Trip CTA, "important actions only" */
+
+  /* Trust / status */
+  --color-trust-bg: oklch(96% 0.03 145);
+  --color-trust-fg: oklch(35% 0.1 145);
+  --color-partner-bg: oklch(94% 0.04 45);
+  --color-partner-fg: oklch(38% 0.12 45);
+  --color-danger: oklch(55% 0.19 25);
+  --color-badge-bg: oklch(60% 0.2 25);
+
+  /* Neutrals (text) */
+  --color-text-primary: oklch(20% 0.01 255);
+  --color-text-secondary: oklch(30% 0.01 255);
+  --color-text-tertiary: oklch(45% 0.01 255);
+  --color-text-muted: oklch(50% 0.01 255);
+  --color-text-faint: oklch(55% 0.01 255);
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-tint: oklch(97% 0.004 255); /* mobile CTA bar bg */
+  --color-surface-alt: oklch(98% 0.006 255); /* hero / alt section bg */
+  --color-surface-accent: oklch(97% 0.02 255); /* CTA band bg */
+  --color-surface-hover: oklch(95% 0.005 255);
+  --color-surface-avatar: oklch(85% 0.03 255);
+
+  /* Borders */
+  --color-border: oklch(90% 0.005 255);
+  --color-border-soft: oklch(93% 0.005 255);
+  --color-border-input: oklch(88% 0.005 255);
+  --color-border-partner: oklch(88% 0.03 45);
+  --color-border-divider: oklch(94% 0.004 255);
+
+  /* Icon tiles (How It Works) */
+  --color-tile-blue: oklch(93% 0.04 255);
+  --color-tile-teal: oklch(93% 0.05 185);
+  --color-tile-orange: oklch(94% 0.04 45);
+
+  /* Radii */
+  --radius-pill: 100px;
+  --radius-card: 18px;
+  --radius-modal: 20px;
+  --radius-input: 12px;
+
+  /* Layout */
+  --header-height-desktop: 72px;
+  --header-height-compressed: 60px;
+  --header-height-tablet: 64px;
+  --header-height-mobile: 56px;
+  --content-max-width: 1280px;
+  --section-max-width: 1200px;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+
+  --color-trust-bg: var(--color-trust-bg);
+  --color-trust-fg: var(--color-trust-fg);
+  --color-partner-bg: var(--color-partner-bg);
+  --color-partner-fg: var(--color-partner-fg);
+  --color-danger: var(--color-danger);
+  --color-badge-bg: var(--color-badge-bg);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+
+  --color-surface: var(--color-surface);
+  --color-surface-tint: var(--color-surface-tint);
+  --color-surface-alt: var(--color-surface-alt);
+  --color-surface-accent: var(--color-surface-accent);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-avatar: var(--color-surface-avatar);
+
+  --color-border: var(--color-border);
+  --color-border-soft: var(--color-border-soft);
+  --color-border-input: var(--color-border-input);
+  --color-border-partner: var(--color-border-partner);
+  --color-border-divider: var(--color-border-divider);
+
+  --color-tile-blue: var(--color-tile-blue);
+  --color-tile-teal: var(--color-tile-teal);
+  --color-tile-orange: var(--color-tile-orange);
+
+  --font-sans: "Roboto";
+  --font-display: "Google Sans Text";
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: "Roboto", system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: "Google Sans Text", "Roboto", system-ui, sans-serif;
+}
+
+/* Consistent focus ring per Navigation System Step 8 accessibility spec */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Horizontal card rails (mobile) - thin scrollbar, no visible track bulk */
+.rail {
+  scrollbar-width: thin;
+}
+
+/* Mobile hamburger panel slide-in, per Navigation System Step F: 220ms ease-out */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* OTP box invalid-code shake, per Auth Modal OTP Screen spec */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Homepage hero entrance — content is above the fold and visible
+   immediately on load, so this runs once on mount rather than needing an
+   IntersectionObserver (unlike the scroll-triggered sections further down
+   the page, e.g. TrustScoreSection/TripTypesSection). */
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-fade-in {
+  animation: heroFadeIn 700ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-fade-in {
+    animation: none;
+  }
+}
