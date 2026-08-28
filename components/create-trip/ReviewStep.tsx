@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { StepShell } from "./StepShell";
 import { useCreateTrip, type StepKey } from "@/lib/create-trip-context";
 import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
-import { formatTripTiming } from "@/lib/trip-dates";
+import { formatTripTiming, formatFixedDates } from "@/lib/trip-dates";
+import { PriceTag } from "@/components/ui/PriceTag";
 
 /**
  * Step 5 — Review & Publish, per "GoTogether Create Trip - Review Step"
@@ -24,6 +25,7 @@ export function ReviewStep({
   onPublish: () => Promise<void>;
 }) {
   const { fields, markStepComplete, publishing, publishError } = useCreateTrip();
+  const isPartner = fields.kind === "verified_partner";
 
   const [destinations, setDestinations] = useState<AdminDestinationRow[]>([]);
   useEffect(() => {
@@ -36,12 +38,14 @@ export function ReviewStep({
     };
   }, []);
   const destination = fields.destinationSlug ? destinations.find((d) => d.slug === fields.destinationSlug) : undefined;
-  const timing = formatTripTiming({
-    availabilityStart: fields.availabilityStart || null,
-    availabilityEnd: fields.availabilityEnd || null,
-    durationMin: fields.durationMin,
-    durationMax: fields.durationMax,
-  });
+  const timing = isPartner
+    ? formatFixedDates(fields.fixedStartDate || null, fields.fixedEndDate || null)
+    : formatTripTiming({
+        availabilityStart: fields.availabilityStart || null,
+        availabilityEnd: fields.availabilityEnd || null,
+        durationMin: fields.durationMin,
+        durationMax: fields.durationMax,
+      });
   const budgetLabel =
     fields.budgetChip === "Custom"
       ? `₹${Number(fields.customBudget || 0).toLocaleString("en-IN")}`
@@ -78,16 +82,24 @@ export function ReviewStep({
         <EditLink onClick={() => onEditStep("destination")} />
       </div>
 
-      <Row label="Availability" value={timing} onEdit={() => onEditStep("dates")} />
-      <Row
-        label="Budget"
-        value={
-          <>
-            {budgetLabel} <span className="font-normal text-text-muted">(estimate)</span>
-          </>
-        }
-        onEdit={() => onEditStep("budget")}
-      />
+      <Row label={isPartner ? "Dates" : "Availability"} value={timing} onEdit={() => onEditStep("dates")} />
+      {isPartner ? (
+        <Row
+          label="Price"
+          value={<PriceTag price={fields.price ? Number(fields.price) : null} originalPrice={fields.originalPrice ? Number(fields.originalPrice) : null} size="sm" />}
+          onEdit={() => onEditStep("budget")}
+        />
+      ) : (
+        <Row
+          label="Budget"
+          value={
+            <>
+              {budgetLabel} <span className="font-normal text-text-muted">(estimate)</span>
+            </>
+          }
+          onEdit={() => onEditStep("budget")}
+        />
+      )}
       <Row
         label="Description"
         value={fields.description || "—"}
@@ -119,7 +131,9 @@ export function ReviewStep({
       />
 
       <div className="mt-5 rounded-xl bg-surface-tint px-4 py-3 text-[11.5px] leading-relaxed text-text-tertiary">
-        This is an estimate to help travellers decide — GoTogether does not collect payments for community trips.
+        {isPartner
+          ? "This is the confirmed price and schedule travellers will see — GoTogether does not process payment on your behalf; you handle payment directly with travellers."
+          : "This is an estimate to help travellers decide — GoTogether does not collect payments for community trips."}
       </div>
 
       {publishError && (

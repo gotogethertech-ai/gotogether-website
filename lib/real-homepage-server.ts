@@ -44,6 +44,8 @@ export async function getRealHomepageTrips(): Promise<{
     dates: t.dates,
     seats: t.members.split("/")[1] ?? "—",
     price: t.budget,
+    priceValue: t.price ?? null,
+    originalPriceValue: t.originalPrice ?? null,
     imgAlt: t.destination,
     imgSrc: t.imgSrc,
     minAge: t.minAge,

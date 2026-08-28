@@ -615,6 +615,8 @@ export type Database = {
           duration_max: number | null
           duration_min: number | null
           end_date: string | null
+          fixed_end_date: string | null
+          fixed_start_date: string | null
           gender_restriction: Database["public"]["Enums"]["trip_gender_restriction"]
           id: string
           kind: Database["public"]["Enums"]["trip_kind"]
@@ -622,6 +624,8 @@ export type Database = {
           max_group_size: number
           min_age: number | null
           organizer_id: string
+          original_price: number | null
+          price: number | null
           registrations_closed: boolean
           start_date: string | null
           status: Database["public"]["Enums"]["trip_status"]
@@ -647,6 +651,8 @@ export type Database = {
           duration_max?: number | null
           duration_min?: number | null
           end_date?: string | null
+          fixed_end_date?: string | null
+          fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
           id?: string
           kind?: Database["public"]["Enums"]["trip_kind"]
@@ -654,6 +660,8 @@ export type Database = {
           max_group_size: number
           min_age?: number | null
           organizer_id: string
+          original_price?: number | null
+          price?: number | null
           registrations_closed?: boolean
           start_date?: string | null
           status?: Database["public"]["Enums"]["trip_status"]
@@ -679,6 +687,8 @@ export type Database = {
           duration_max?: number | null
           duration_min?: number | null
           end_date?: string | null
+          fixed_end_date?: string | null
+          fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
           id?: string
           kind?: Database["public"]["Enums"]["trip_kind"]
@@ -686,6 +696,8 @@ export type Database = {
           max_group_size?: number
           min_age?: number | null
           organizer_id?: string
+          original_price?: number | null
+          price?: number | null
           registrations_closed?: boolean
           start_date?: string | null
           status?: Database["public"]["Enums"]["trip_status"]

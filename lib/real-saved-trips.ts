@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ExploreTrip } from "@/lib/mock-data";
-import { formatTripTiming } from "@/lib/trip-dates";
+import { formatTripListingDates, formatTripListingBudget } from "@/lib/trip-dates";
 
 /**
  * Saved Trips (bookmarks) — self-service reads/writes against
@@ -60,7 +60,7 @@ export async function getSavedTrips(): Promise<ExploreTrip[]> {
   const { data: trips } = await supabase
     .from("trips")
     .select(
-      "id, title, kind, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, max_group_size, min_age, max_age, gender_restriction, organizer_id, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name)"
+      "id, title, kind, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name)"
     )
     .in("id", tripIds);
   if (!trips || trips.length === 0) return [];
@@ -82,12 +82,6 @@ export async function getSavedTrips(): Promise<ExploreTrip[]> {
     for (const r of trustRows ?? []) trustByOrganizer.set(r.user_id, Number(r.score));
   }
 
-  function formatBudget(min: number | null, max: number | null): string {
-    if (min && max && min !== max) return `₹${min.toLocaleString("en-IN")}–${max.toLocaleString("en-IN")}`;
-    const n = max ?? min;
-    return n ? `₹${n.toLocaleString("en-IN")}` : "—";
-  }
-
   const byId = new Map(trips.map((t) => [t.id, t]));
   // Preserve the caller's saved_trips.created_at order (most-recently
   // saved first) rather than whatever order `.in()` happened to return.
@@ -103,16 +97,19 @@ export async function getSavedTrips(): Promise<ExploreTrip[]> {
         id: t.id,
         destination: dest?.name ?? "—",
         title: t.title,
-        dates: formatTripTiming({
+        dates: formatTripListingDates({
+          kind: t.kind,
           availabilityStart: t.availability_start,
           availabilityEnd: t.availability_end,
           durationMin: t.duration_min,
           durationMax: t.duration_max,
+          fixedStartDate: t.fixed_start_date,
+          fixedEndDate: t.fixed_end_date,
         }),
         organizer: organizer?.name ?? "Trip Organizer",
         trust: trust !== undefined ? trust.toFixed(1) : "5.0",
         members: `${joined}/${t.max_group_size}`,
-        budget: formatBudget(t.budget_min, t.budget_max),
+        budget: formatTripListingBudget({ kind: t.kind, budgetMin: t.budget_min, budgetMax: t.budget_max, price: t.price }),
         type: t.kind === "verified_partner" ? "partner" : "community",
         imgSrc: dest?.cover_image_url ?? "/placeholders/manali.svg",
         minAge: t.min_age,
@@ -122,6 +119,8 @@ export async function getSavedTrips(): Promise<ExploreTrip[]> {
         budgetMax: t.budget_max,
         durationMin: t.duration_min,
         durationMax: t.duration_max,
+        price: t.price,
+        originalPrice: t.original_price,
       };
     });
 }

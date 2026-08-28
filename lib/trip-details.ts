@@ -45,6 +45,12 @@ export type TripDetail = {
   tripType: string;
   budgetLabel: string; // "Estimated budget" (community) or "Price" (partner)
   budget: string;
+  // Raw numeric price fields for Verified Partner trips (kind: "partner"),
+  // letting the detail page render the struck-through discount display
+  // via PriceTag instead of just the plain `budget` string above. Unset
+  // for community trips.
+  priceValue?: number | null;
+  originalPriceValue?: number | null;
   kind: "community" | "partner";
   status: TripStatus;
   imgSrc: string;

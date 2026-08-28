@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
+import { PriceTag } from "@/components/ui/PriceTag";
 
 type GenderRestriction = "any" | "women_only" | "men_only";
 
@@ -24,6 +25,11 @@ export type PartnerTrip = {
   dates: string;
   seats: string;
   price: string;
+  // Raw numeric price fields, when available, so the card can render the
+  // struck-through discount display via PriceTag instead of just the
+  // plain formatted `price` string above.
+  priceValue?: number | null;
+  originalPriceValue?: number | null;
   imgAlt: string;
   imgSrc: string;
   minAge?: number | null;
@@ -117,11 +123,13 @@ export function PartnerTripCard({ trip }: { trip: PartnerTrip }) {
         </span>
         <div className="mb-1 text-sm font-bold">{trip.title}</div>
         <div className="mb-2 text-[11.5px] text-text-muted">
-          <span className="text-text-tertiary">Available</span> {trip.dates} &middot; {trip.seats} seats left
+          {trip.dates} &middot; {trip.seats} seats left
         </div>
-        <div className="text-[13px] font-bold text-text-secondary">
-          {trip.price}
-        </div>
+        {trip.priceValue ? (
+          <PriceTag price={trip.priceValue} originalPrice={trip.originalPriceValue} size="sm" />
+        ) : (
+          <div className="text-[13px] font-bold text-text-secondary">{trip.price}</div>
+        )}
         <GroupBadges minAge={trip.minAge} maxAge={trip.maxAge} genderRestriction={trip.genderRestriction} />
       </div>
     </Link>

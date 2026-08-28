@@ -11,6 +11,7 @@ import { TripActionPanelConnected } from "@/components/trip/TripRelationshipProv
 import { TripStatusChip } from "@/components/trip/TripStatusChip";
 import { getRealTripDetailServer } from "@/lib/real-trip-details-server";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
+import { PriceTag } from "@/components/ui/PriceTag";
 
 // Real trip ids aren't known at build time — every /trips/[id] request is
 // rendered on demand against the live database rather than a fixed set of
@@ -44,7 +45,13 @@ export default async function TripDetailsPage({
   const hasGroupRestriction = !!(trip.genderRestriction && trip.genderRestriction !== "any") || !!ageRange;
 
   const metaRow: string[] = [];
-  if (trip.dates) metaRow.push(`📅 Available ${trip.dates}${trip.duration ? ` · ${trip.duration}` : ""}`);
+  if (trip.dates) {
+    metaRow.push(
+      trip.kind === "partner"
+        ? `📅 ${trip.dates}`
+        : `📅 Available ${trip.dates}${trip.duration ? ` · ${trip.duration}` : ""}`
+    );
+  }
   if (trip.tripType) metaRow.push(`🎒 ${trip.tripType}`);
   if (hasGroupRestriction) {
     const parts = [genderRestrictionLabel(trip.genderRestriction)];
@@ -85,15 +92,15 @@ export default async function TripDetailsPage({
                 </div>
               )}
               <div className="flex items-center gap-2.5">
-                {trip.budget && (
-                  <div className="text-base font-bold text-text-secondary">
-                    {trip.budget}{" "}
-                    {trip.kind === "community" && (
-                      <span className="text-[11px] font-medium text-text-muted">
-                        estimated
-                      </span>
-                    )}
-                  </div>
+                {trip.kind === "partner" && trip.priceValue ? (
+                  <PriceTag price={trip.priceValue} originalPrice={trip.originalPriceValue} />
+                ) : (
+                  trip.budget && (
+                    <div className="text-base font-bold text-text-secondary">
+                      {trip.budget}{" "}
+                      <span className="text-[11px] font-medium text-text-muted">estimated</span>
+                    </div>
+                  )
                 )}
                 <span
                   className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold ${

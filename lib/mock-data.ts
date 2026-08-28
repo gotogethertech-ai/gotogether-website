@@ -133,6 +133,12 @@ export type ExploreTrip = {
   budgetMax?: number | null;
   durationMin?: number | null;
   durationMax?: number | null;
+  // Verified Partner trips only: fixed price (+ optional higher
+  // originalPrice for the struck-through discount display via PriceTag).
+  // null/undefined for community trips, which use budgetMin/budgetMax
+  // instead.
+  price?: number | null;
+  originalPrice?: number | null;
 };
 
 /** Explore result set — matches "GoTogether Explore Page.dc.html"'s exact

@@ -47,6 +47,14 @@ export type CreateTripFields = {
   durationMax: number | null;
   budgetChip: string | null;
   customBudget: string;
+  // Verified Partner only: a confirmed departure/return date instead of
+  // an availability window, and a fixed price (with an optional higher
+  // originalPrice shown struck through) instead of a budget range. Left
+  // empty/null for community trips.
+  fixedStartDate: string;
+  fixedEndDate: string;
+  price: string;
+  originalPrice: string;
   title: string;
   description: string;
   descriptionTouched: boolean;
@@ -70,6 +78,10 @@ const EMPTY_FIELDS: CreateTripFields = {
   durationMax: null,
   budgetChip: null,
   customBudget: "",
+  fixedStartDate: "",
+  fixedEndDate: "",
+  price: "",
+  originalPrice: "",
   title: "",
   description: "",
   descriptionTouched: false,
@@ -259,6 +271,28 @@ export function isValidCustomBudget(value: string): boolean {
 }
 
 export { MAX_CUSTOM_BUDGET };
+
+const MAX_PRICE = 500000;
+
+/** Same shape of validation as isValidCustomBudget — a positive number up
+ * to a sane ceiling. Used for the Verified Partner price field. */
+export function isValidPrice(value: string): boolean {
+  if (!value.trim()) return false;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 && n <= MAX_PRICE;
+}
+
+/** originalPrice is optional, but if the organizer typed something it must
+ * be a valid positive number strictly greater than price (otherwise
+ * there's no real discount to show — see PriceTag). */
+export function isValidOriginalPrice(value: string, price: string): boolean {
+  if (!value.trim()) return true; // optional field
+  const n = Number(value);
+  const p = Number(price);
+  return Number.isFinite(n) && n > 0 && n <= MAX_PRICE && Number.isFinite(p) && n > p;
+}
+
+export { MAX_PRICE };
 
 /** Auto-generated description default, per the Trip Description spec —
  * "auto-generated from destination + duration + trip type... not an

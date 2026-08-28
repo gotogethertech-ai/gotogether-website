@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useSavedTripIds } from "@/lib/use-saved-trips";
 import type { ExploreTrip } from "@/lib/mock-data";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
+import { PriceTag } from "@/components/ui/PriceTag";
 
 /**
  * Explore result card — per "Explore Trips Blueprint" Trip Card Specification:
@@ -68,7 +69,8 @@ export function ExploreTripCard({ trip, priority = false }: { trip: ExploreTrip;
       </div>
       <div className="p-3.5">
         <div className="mb-0.5 text-[11px] text-text-muted">
-          {trip.destination} &middot; <span className="text-text-tertiary">Available</span> {trip.dates}
+          {trip.destination} &middot;{" "}
+          {trip.type === "partner" ? trip.dates : <><span className="text-text-tertiary">Available</span> {trip.dates}</>}
         </div>
         <div className="mb-1.5 line-clamp-2 text-sm leading-tight font-bold">
           {trip.title}
@@ -82,9 +84,13 @@ export function ExploreTripCard({ trip, priority = false }: { trip: ExploreTrip;
             ⭐ {trip.trust}
           </span>
         </div>
-        <div className="mt-2 flex justify-between border-t border-border-divider pt-2 text-[11px] text-text-muted">
+        <div className="mt-2 flex items-center justify-between border-t border-border-divider pt-2 text-[11px] text-text-muted">
           <span>{trip.members} joined</span>
-          <span className="font-semibold text-text-secondary">{trip.budget}</span>
+          {trip.type === "partner" && trip.price ? (
+            <PriceTag price={trip.price} originalPrice={trip.originalPrice} size="sm" />
+          ) : (
+            <span className="font-semibold text-text-secondary">{trip.budget}</span>
+          )}
         </div>
 
         {(showGroupBadge || ageRange) && (

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { TripDetail, TripStatus } from "@/lib/trip-details";
-import { formatAvailabilityWindow, formatDurationRange } from "@/lib/trip-dates";
+import { formatAvailabilityWindow, formatDurationRange, formatFixedDates, formatPrice } from "@/lib/trip-dates";
 
 /**
  * Shape-only helpers shared between the client (lib/real-trip-details.ts)
@@ -33,7 +33,7 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
   const { data: trip, error } = await supabase
     .from("trips")
     .select(
-      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, max_group_size, min_age, max_age, gender_restriction, organizer_id, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url)"
+      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -63,18 +63,23 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
   const dest = Array.isArray(trip.destinations) ? trip.destinations[0] : trip.destinations;
   const organizer = Array.isArray(trip.users) ? trip.users[0] : trip.users;
   const joined = membersJoined ?? 0;
+  const isPartner = trip.kind === "verified_partner";
 
   return {
     id: trip.id,
     destination: dest?.name ?? "—",
     region: dest?.name ? `${dest.name}, India` : "—",
     title: trip.title,
-    dates: formatAvailabilityWindow(trip.availability_start, trip.availability_end),
-    duration: formatDurationRange(trip.duration_min, trip.duration_max),
+    dates: isPartner
+      ? formatFixedDates(trip.fixed_start_date, trip.fixed_end_date)
+      : formatAvailabilityWindow(trip.availability_start, trip.availability_end),
+    duration: isPartner ? "" : formatDurationRange(trip.duration_min, trip.duration_max),
     tripType: "",
-    budgetLabel: trip.kind === "verified_partner" ? "Price" : "Estimated budget",
-    budget: formatBudget(trip.budget_min, trip.budget_max),
-    kind: trip.kind === "verified_partner" ? "partner" : "community",
+    budgetLabel: isPartner ? "Price" : "Estimated budget",
+    budget: isPartner ? formatPrice(trip.price) ?? "" : formatBudget(trip.budget_min, trip.budget_max),
+    priceValue: trip.price,
+    originalPriceValue: trip.original_price,
+    kind: isPartner ? "partner" : "community",
     status: mapStatus(trip.status, joined, trip.max_group_size),
     imgSrc: dest?.cover_image_url ?? "/placeholders/manali.svg",
     organizer: {

@@ -53,6 +53,7 @@ export async function publishTrip(fields: CreateTripFields, organizerId: string)
     throw new Error("That destination isn't available anymore — pick a different one from the list.");
   }
 
+  const isPartner = fields.kind === "verified_partner";
   const { min, max } = budgetRange(fields);
 
   const { data: trip, error: tripError } = await supabase
@@ -60,16 +61,24 @@ export async function publishTrip(fields: CreateTripFields, organizerId: string)
     .insert({
       organizer_id: organizerId,
       kind: fields.kind,
-      company_id: fields.kind === "verified_partner" ? fields.companyId : null,
+      company_id: isPartner ? fields.companyId : null,
       title: fields.title.trim(),
       description: fields.description.trim() || null,
       destination_id: destRow.id,
-      availability_start: fields.availabilityStart || null,
-      availability_end: fields.availabilityEnd || null,
-      duration_min: fields.durationMin,
-      duration_max: fields.durationMax,
-      budget_min: min,
-      budget_max: max,
+      // Verified Partner trips carry a confirmed fixed schedule + price
+      // (DB constraint trips_fixed_pricing_only_for_partner enforces the
+      // reverse too — community trips can never have these set) instead
+      // of an availability window + budget range.
+      availability_start: isPartner ? null : fields.availabilityStart || null,
+      availability_end: isPartner ? null : fields.availabilityEnd || null,
+      duration_min: isPartner ? null : fields.durationMin,
+      duration_max: isPartner ? null : fields.durationMax,
+      budget_min: isPartner ? null : min,
+      budget_max: isPartner ? null : max,
+      fixed_start_date: isPartner ? fields.fixedStartDate || null : null,
+      fixed_end_date: isPartner ? fields.fixedEndDate || null : null,
+      price: isPartner && fields.price ? Number(fields.price) : null,
+      original_price: isPartner && fields.originalPrice ? Number(fields.originalPrice) : null,
       max_group_size: fields.maxGroup,
       min_age: fields.minAge,
       max_age: fields.maxAge,

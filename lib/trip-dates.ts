@@ -76,3 +76,80 @@ export function formatAgeRange(minAge: number | null, maxAge: number | null): st
   if (maxAge) return `Up to ${maxAge}`;
   return null;
 }
+
+/** "25 Aug – 30 Aug" (both set), a single day, or "Dates TBD" — for
+ * Verified Partner trips' confirmed departure (fixed_start_date /
+ * fixed_end_date), as opposed to Community trips' flexible
+ * formatAvailabilityWindow() range. */
+export function formatFixedDates(start: string | null, end: string | null): string {
+  if (!start && !end) return "Dates TBD";
+  if (start && end && start !== end) return `${shortDate(start)} – ${shortDate(end)}`;
+  return shortDate((start ?? end) as string);
+}
+
+function formatInr(n: number): string {
+  // No decimals for whole-rupee prices (the overwhelmingly common case);
+  // falls back to 2dp only when a price actually carries paise, so a
+  // ₹7999.00 row never renders as "₹7,999.00" for no reason.
+  const hasFraction = !Number.isInteger(n);
+  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: hasFraction ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+/** Plain "₹7,999" price string, or null when unset. */
+export function formatPrice(price: number | null): string | null {
+  if (price === null || price === undefined) return null;
+  return formatInr(price);
+}
+
+/** Discount percentage off original_price, e.g. 20 for a ₹9,999 → ₹7,999
+ * cut. null when there's no real discount to show (original_price unset,
+ * or not actually higher than price). */
+export function discountPercent(price: number | null, originalPrice: number | null): number | null {
+  if (!price || !originalPrice || originalPrice <= price) return null;
+  return Math.round(((originalPrice - price) / originalPrice) * 100);
+}
+
+/** Dates display string for a trip-list row (ExploreTripCard/PartnerTripCard/
+ * TripCard), branching on kind so callers building an ExploreTrip don't
+ * each duplicate the fixed-vs-availability decision: Verified Partner
+ * trips show their confirmed fixed_start_date/fixed_end_date, community
+ * trips keep the flexible availability window + duration. */
+export function formatTripListingDates(t: {
+  kind: "community" | "verified_partner";
+  availabilityStart: string | null;
+  availabilityEnd: string | null;
+  durationMin: number | null;
+  durationMax: number | null;
+  fixedStartDate: string | null;
+  fixedEndDate: string | null;
+}): string {
+  if (t.kind === "verified_partner") {
+    return formatFixedDates(t.fixedStartDate, t.fixedEndDate);
+  }
+  return formatTripTiming({
+    availabilityStart: t.availabilityStart,
+    availabilityEnd: t.availabilityEnd,
+    durationMin: t.durationMin,
+    durationMax: t.durationMax,
+  });
+}
+
+/** Budget/price display string for a trip-list row, same kind-branch as
+ * formatTripListingDates: Verified Partner trips show their fixed price
+ * (plain, no discount badge — that's PriceTag's job on cards with room
+ * for it), community trips keep the budget_min/budget_max range. */
+export function formatTripListingBudget(t: {
+  kind: "community" | "verified_partner";
+  budgetMin: number | null;
+  budgetMax: number | null;
+  price: number | null;
+}): string {
+  if (t.kind === "verified_partner") {
+    return formatPrice(t.price) ?? "—";
+  }
+  if (t.budgetMin && t.budgetMax && t.budgetMin !== t.budgetMax) {
+    return `₹${t.budgetMin.toLocaleString("en-IN")}–${t.budgetMax.toLocaleString("en-IN")}`;
+  }
+  const n = t.budgetMax ?? t.budgetMin;
+  return n ? `₹${n.toLocaleString("en-IN")}` : "—";
+}

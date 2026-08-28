@@ -46,6 +46,7 @@ export function DatesStep({
   const { fields, update, markStepComplete } = useCreateTrip();
   const today = useMemo(() => todayIso(), []);
   const windowEnd = useMemo(() => addDays(today, WINDOW_DAYS), [today]);
+  const isPartner = fields.kind === "verified_partner";
 
   // Default the window/duration in once, the first time this step is
   // reached with nothing set yet, so the sliders start somewhere sensible
@@ -55,16 +56,72 @@ export function DatesStep({
   const durationMin = fields.durationMin ?? 4;
   const durationMax = fields.durationMax ?? 6;
 
-  const valid = !!fields.availabilityStart && !!fields.availabilityEnd && !!fields.durationMin && !!fields.durationMax;
+  const communityValid =
+    !!fields.availabilityStart && !!fields.availabilityEnd && !!fields.durationMin && !!fields.durationMax;
+  const partnerValid =
+    !!fields.fixedStartDate && !!fields.fixedEndDate && fields.fixedEndDate >= fields.fixedStartDate;
+  const valid = isPartner ? partnerValid : true; // community always auto-fills defaults below
 
   function handleContinue() {
-    // Commit the defaults if the host never touched a slider, so Continue
-    // always leaves fields fully populated.
-    if (!valid) {
+    if (isPartner) {
+      if (!partnerValid) return;
+    } else if (!communityValid) {
+      // Commit the defaults if the host never touched a slider, so
+      // Continue always leaves fields fully populated.
       update({ availabilityStart, availabilityEnd, durationMin, durationMax });
     }
     markStepComplete("dates");
     onContinue();
+  }
+
+  if (isPartner) {
+    return (
+      <StepShell
+        step="dates"
+        title="When does this trip depart?"
+        subtitle="Verified Partner trips run on a confirmed, fixed schedule — not a flexible window like community trips."
+        onBack={onBack}
+        onContinue={handleContinue}
+        continueDisabled={!valid}
+        hasUnsavedInput={!!fields.fixedStartDate || !!fields.fixedEndDate}
+      >
+        <div className="mb-5">
+          <label htmlFor="fixed-start" className="mb-1.5 block text-[11px] font-semibold text-text-tertiary">
+            Departure date
+          </label>
+          <input
+            id="fixed-start"
+            type="date"
+            min={today}
+            value={fields.fixedStartDate}
+            onChange={(e) =>
+              update({
+                fixedStartDate: e.target.value,
+                fixedEndDate: fields.fixedEndDate && fields.fixedEndDate < e.target.value ? "" : fields.fixedEndDate,
+              })
+            }
+            className="w-full rounded-xl border-[1.5px] border-border-input px-3.5 py-3 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="fixed-end" className="mb-1.5 block text-[11px] font-semibold text-text-tertiary">
+            Return date
+          </label>
+          <input
+            id="fixed-end"
+            type="date"
+            min={fields.fixedStartDate || today}
+            value={fields.fixedEndDate}
+            onChange={(e) => update({ fixedEndDate: e.target.value })}
+            disabled={!fields.fixedStartDate}
+            className="w-full rounded-xl border-[1.5px] border-border-input px-3.5 py-3 text-sm outline-none focus:border-primary disabled:bg-surface-tint disabled:text-text-muted"
+          />
+        </div>
+        <p className="mt-4 text-[11.5px] text-text-tertiary">
+          Travellers see these exact dates — there&apos;s no flexible window for partner trips.
+        </p>
+      </StepShell>
+    );
   }
 
   return (
