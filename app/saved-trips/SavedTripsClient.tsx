@@ -8,6 +8,7 @@ import { ExploreTripCard } from "@/components/ui/ExploreTripCard";
 import { useAuth } from "@/lib/auth-context";
 import { getSavedTrips } from "@/lib/real-saved-trips";
 import type { ExploreTrip } from "@/lib/mock-data";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 
 /**
  * Saved Trips — lists every trip the signed-in user has bookmarked via the
@@ -61,6 +62,8 @@ export function SavedTripsClient() {
             Trips you&apos;ve bookmarked from Explore — tap the ribbon icon on any trip card to save
             or remove it.
           </p>
+
+          {loaded && trips.length > 0 && <AvailabilityDateNotice />}
 
           {!loaded ? (
             <div className="grid grid-cols-1 gap-5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1280px]:grid-cols-4">

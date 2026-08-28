@@ -11,6 +11,7 @@ import { TrustScoreSection } from "@/components/TrustScoreSection";
 import { TripTypesSection } from "@/components/TripTypesSection";
 import { HeroBackground } from "@/components/HeroBackground";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 import { getRealHomepageTrips } from "@/lib/real-homepage-server";
 import { getActiveDestinations } from "@/lib/destinations-server";
 import { getPublishedTestimonials } from "@/lib/testimonials-server";
@@ -114,6 +115,7 @@ export default async function Home() {
 
         {/* TRIPS FOR YOU */}
         <section className="mx-auto max-w-(--section-max-width) px-8 py-14">
+          <AvailabilityDateNotice />
           <p className="mb-2 text-[11px] font-bold tracking-wide text-primary uppercase">
             Live right now
           </p>

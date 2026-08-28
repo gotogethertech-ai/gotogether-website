@@ -14,6 +14,7 @@ import { getRealExploreTrips } from "@/lib/real-explore";
 import { getMyHostedTrips } from "@/lib/real-trips";
 import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 import { createClient } from "@/lib/supabase/client";
 import type { TestimonialRow } from "@/lib/testimonials-server";
 
@@ -168,6 +169,7 @@ export function LoggedInHomeClient() {
         )}
 
         <section className="mx-auto max-w-(--section-max-width) px-8 pt-10 max-[599px]:px-4">
+          <AvailabilityDateNotice />
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-bold">Trips being planned</h2>
             <Link href="/explore" className="text-[12.5px] font-semibold text-primary hover:underline">

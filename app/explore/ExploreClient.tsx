@@ -10,6 +10,7 @@ import type { ExploreTrip } from "@/lib/mock-data";
 import { getRealExploreTrips } from "@/lib/real-explore";
 import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
 import { useAuth, hasCompleteProfile, tripMatchesViewer, MINIMUM_AGE, ageFromDateOfBirth } from "@/lib/auth-context";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 
 const SORT_OPTIONS = [
   "Best Match",
@@ -654,6 +655,8 @@ export function ExploreClient() {
                 )}
               </div>
             </div>
+
+            <AvailabilityDateNotice />
 
             {!loaded ? null : filtered.length === 0 ? (
               exploreTrips.length === 0 ? (

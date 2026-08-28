@@ -12,6 +12,7 @@ import { TripStatusChip } from "@/components/trip/TripStatusChip";
 import { getRealTripDetailServer } from "@/lib/real-trip-details-server";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
 import { PriceTag } from "@/components/ui/PriceTag";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 
 // Real trip ids aren't known at build time — every /trips/[id] request is
 // rendered on demand against the live database rather than a fixed set of
@@ -91,6 +92,7 @@ export default async function TripDetailsPage({
                   ))}
                 </div>
               )}
+              {trip.kind === "community" && <AvailabilityDateNotice compact />}
               <div className="flex items-center gap-2.5">
                 {trip.kind === "partner" && trip.priceValue ? (
                   <PriceTag price={trip.priceValue} originalPrice={trip.originalPriceValue} />

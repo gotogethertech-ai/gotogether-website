@@ -19,6 +19,7 @@ import type {
 } from "@/lib/my-trips-data";
 import { getMyHostedTrips } from "@/lib/real-trips";
 import { getMyGoingTrips, withdrawJoinRequest } from "@/lib/real-going-trips";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 
 type TabKey = "going" | "hosting";
 
@@ -137,6 +138,7 @@ export function MyTripsClient() {
             </div>
           ) : (
             <>
+              <AvailabilityDateNotice />
               <PriorityZone active={active} pending={pending} onWithdraw={handleWithdraw} />
 
               <div role="tablist" aria-label="My Trips sections" className="mb-6 flex gap-7 border-b border-border-divider">

@@ -13,6 +13,7 @@ import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
 import { getRealExploreTrips } from "@/lib/real-explore";
 import type { ExploreTrip } from "@/lib/mock-data";
 import type { DestinationRow } from "@/lib/destinations-server";
+import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   mountains: { label: "Mountains", icon: "🏔️" },
@@ -119,6 +120,8 @@ export function DestinationDetailsClient({ destination }: { destination: Destina
               </Link>
             )}
           </div>
+
+          {loaded && visibleTrips.length > 0 && <AvailabilityDateNotice />}
 
           {!loaded ? null : visibleTrips.length > 0 ? (
             <div className="mb-11 grid grid-cols-1 gap-4.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3">
