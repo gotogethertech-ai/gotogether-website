@@ -8,6 +8,7 @@ import { Pill, TableSkeleton, EmptyState, ErrorRetry, AdminButton, useLiveAnnoun
 import { useAuth, MINIMUM_AGE } from "@/lib/auth-context";
 import { can } from "@/lib/admin/guard";
 import { RangeSlider } from "@/components/ui/RangeSlider";
+import { AvailabilityDatePicker } from "@/components/ui/AvailabilityDatePicker";
 import { formatTripTiming } from "@/lib/trip-dates";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -21,7 +22,6 @@ const GENDER_OPTIONS: { value: TripGenderRestriction; label: string }[] = [
 ];
 
 const PAGE_SIZE = 25;
-const AVAILABILITY_WINDOW_DAYS = 120;
 const DURATION_MIN_DAYS = 1;
 const DURATION_MAX_DAYS = 14;
 
@@ -33,10 +33,6 @@ function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function dayOffset(base: string, iso: string): number {
-  return Math.max(0, Math.round((new Date(iso).getTime() - new Date(base).getTime()) / 86400000));
 }
 
 export function TripsListClient() {
@@ -404,17 +400,14 @@ function CreateTripDialog({ onClose, onCreated }: { onClose: () => void; onCreat
         )}
 
         <div className="mb-4">
-          <RangeSlider
-            label="AVAILABILITY WINDOW"
-            min={0}
-            max={AVAILABILITY_WINDOW_DAYS}
-            valueMin={dayOffset(today, availabilityStart)}
-            valueMax={dayOffset(today, availabilityEnd)}
-            onChange={({ min, max }) => {
-              setAvailabilityStart(addDays(today, min));
-              setAvailabilityEnd(addDays(today, max));
+          <AvailabilityDatePicker
+            startDate={availabilityStart}
+            endDate={availabilityEnd}
+            minDate={today}
+            onChange={({ start, end }) => {
+              setAvailabilityStart(start);
+              setAvailabilityEnd(end);
             }}
-            formatValue={(offset) => new Date(addDays(today, offset)).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           />
         </div>
 

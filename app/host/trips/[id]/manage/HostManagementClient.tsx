@@ -28,10 +28,10 @@ import {
 } from "@/lib/real-host-management";
 import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
 import { RangeSlider } from "@/components/ui/RangeSlider";
+import { AvailabilityDatePicker } from "@/components/ui/AvailabilityDatePicker";
 
 type TabKey = "overview" | "requests" | "participants" | "edit";
 
-const AVAILABILITY_WINDOW_DAYS = 120;
 const DURATION_MIN_DAYS = 1;
 const DURATION_MAX_DAYS = 14;
 
@@ -43,10 +43,6 @@ function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function dayOffset(base: string, iso: string): number {
-  return Math.max(0, Math.round((new Date(iso).getTime() - new Date(base).getTime()) / 86400000));
 }
 
 /**
@@ -975,17 +971,14 @@ function EditTab({
       </FieldGroup>
 
       <FieldGroup title="Availability">
-        <RangeSlider
-          label="AVAILABILITY WINDOW"
-          min={0}
-          max={AVAILABILITY_WINDOW_DAYS}
-          valueMin={dayOffset(today, fields.availabilityStart || today)}
-          valueMax={dayOffset(today, fields.availabilityEnd || addDays(today, 7))}
-          onChange={({ min, max }) => {
-            update("availabilityStart", addDays(today, min));
-            update("availabilityEnd", addDays(today, max));
+        <AvailabilityDatePicker
+          startDate={fields.availabilityStart || today}
+          endDate={fields.availabilityEnd || addDays(today, 7)}
+          minDate={today}
+          onChange={({ start, end }) => {
+            update("availabilityStart", start);
+            update("availabilityEnd", end);
           }}
-          formatValue={(offset) => new Date(addDays(today, offset)).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         />
         <p className="mb-4 mt-2 text-[11.5px] text-text-tertiary">
           The trip could begin any day in this range — not a fixed departure date.

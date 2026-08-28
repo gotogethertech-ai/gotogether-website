@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { StepShell } from "./StepShell";
 import { useCreateTrip } from "@/lib/create-trip-context";
 import { RangeSlider } from "@/components/ui/RangeSlider";
+import { AvailabilityDatePicker } from "@/components/ui/AvailabilityDatePicker";
 
-const WINDOW_DAYS = 120; // ~4 months out, a rolling window from today
 const DURATION_MIN_DAYS = 1;
 const DURATION_MAX_DAYS = 14;
 
@@ -17,14 +17,6 @@ function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function dayOffset(base: string, iso: string): number {
-  return Math.max(0, Math.round((new Date(iso).getTime() - new Date(base).getTime()) / 86400000));
-}
-
-function formatShort(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 /**
@@ -45,7 +37,6 @@ export function DatesStep({
 }) {
   const { fields, update, markStepComplete } = useCreateTrip();
   const today = useMemo(() => todayIso(), []);
-  const windowEnd = useMemo(() => addDays(today, WINDOW_DAYS), [today]);
   const isPartner = fields.kind === "verified_partner";
 
   // Default the window/duration in once, the first time this step is
@@ -128,24 +119,18 @@ export function DatesStep({
     <StepShell
       step="dates"
       title="When could you go?"
-      subtitle="Drag to set a window rather than one fixed date — travellers whose own plans fall inside it can still join, even if they're a day or two off."
+      subtitle="Set a window rather than one fixed date — travellers whose own plans fall inside it can still join, even if they're a day or two off."
       onBack={onBack}
       onContinue={handleContinue}
       continueDisabled={false}
       hasUnsavedInput={!!fields.availabilityStart || !!fields.durationMin}
     >
       <div className="mb-8">
-        <RangeSlider
-          label="AVAILABILITY WINDOW"
-          min={0}
-          max={dayOffset(today, windowEnd)}
-          valueMin={dayOffset(today, availabilityStart)}
-          valueMax={dayOffset(today, availabilityEnd)}
-          minGap={0}
-          onChange={({ min, max }) =>
-            update({ availabilityStart: addDays(today, min), availabilityEnd: addDays(today, max) })
-          }
-          formatValue={(offset) => formatShort(addDays(today, offset))}
+        <AvailabilityDatePicker
+          startDate={availabilityStart}
+          endDate={availabilityEnd}
+          minDate={today}
+          onChange={({ start, end }) => update({ availabilityStart: start, availabilityEnd: end })}
         />
         <p className="mt-2 text-[11.5px] text-text-tertiary">
           The trip could begin any day in this range — not a fixed departure date.
