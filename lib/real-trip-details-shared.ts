@@ -102,5 +102,6 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
     minAge: trip.min_age,
     maxAge: trip.max_age,
     genderRestriction: trip.gender_restriction,
+    deadlineDate: isPartner ? trip.fixed_end_date : trip.availability_end,
   };
 }

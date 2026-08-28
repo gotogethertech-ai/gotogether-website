@@ -139,6 +139,15 @@ export type ExploreTrip = {
   // instead.
   price?: number | null;
   originalPrice?: number | null;
+  // Raw fields backing the "2 spots left" / "2 days left" urgency badge
+  // (see lib/trip-dates.ts's getUrgencyBadge) — optional for the same
+  // reason as the fields above: the seed mock trips below predate it.
+  // joinedCount/maxGroupSize come from `members` ("N/M") on real trips;
+  // deadlineDate is availability_end (community) or fixed_end_date
+  // (Verified Partner) — whichever date the trip closes to new joiners.
+  joinedCount?: number | null;
+  maxGroupSize?: number | null;
+  deadlineDate?: string | null;
 };
 
 /** Explore result set — matches "GoTogether Explore Page.dc.html"'s exact

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
 import { PriceTag } from "@/components/ui/PriceTag";
+import { UrgencyBadge } from "@/components/ui/UrgencyBadge";
 
 type GenderRestriction = "any" | "women_only" | "men_only";
 
@@ -17,6 +18,11 @@ export type FeaturedTrip = {
   minAge?: number | null;
   maxAge?: number | null;
   genderRestriction?: GenderRestriction;
+  // Raw fields backing the "2 spots left" / "2 days left" urgency badge —
+  // see lib/trip-dates.ts's getUrgencyBadge.
+  joinedCount?: number | null;
+  maxGroupSize?: number | null;
+  deadlineDate?: string | null;
 };
 
 export type PartnerTrip = {
@@ -35,6 +41,11 @@ export type PartnerTrip = {
   minAge?: number | null;
   maxAge?: number | null;
   genderRestriction?: GenderRestriction;
+  // Raw fields backing the "2 spots left" / "2 days left" urgency badge —
+  // see lib/trip-dates.ts's getUrgencyBadge.
+  joinedCount?: number | null;
+  maxGroupSize?: number | null;
+  deadlineDate?: string | null;
 };
 
 /** Shared "Women only · Age 22–30" badge row — hidden entirely when the
@@ -83,6 +94,12 @@ export function TripCard({ trip }: { trip: FeaturedTrip }) {
           sizes="(min-width: 900px) 33vw, 260px"
           className="object-cover"
         />
+        <UrgencyBadge
+          joinedCount={trip.joinedCount}
+          maxGroupSize={trip.maxGroupSize}
+          deadlineDate={trip.deadlineDate}
+          className="absolute top-2.5 right-2.5"
+        />
       </div>
       <div className="p-3.5">
         <div className="mb-1.5 text-sm font-bold">{trip.title}</div>
@@ -115,6 +132,12 @@ export function PartnerTripCard({ trip }: { trip: PartnerTrip }) {
           fill
           sizes="(min-width: 900px) 33vw, 260px"
           className="object-cover"
+        />
+        <UrgencyBadge
+          joinedCount={trip.joinedCount}
+          maxGroupSize={trip.maxGroupSize}
+          deadlineDate={trip.deadlineDate}
+          className="absolute top-2.5 right-2.5"
         />
       </div>
       <div className="p-3.5">

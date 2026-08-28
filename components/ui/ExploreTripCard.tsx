@@ -7,6 +7,7 @@ import { useSavedTripIds } from "@/lib/use-saved-trips";
 import type { ExploreTrip } from "@/lib/mock-data";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
 import { PriceTag } from "@/components/ui/PriceTag";
+import { UrgencyBadge } from "@/components/ui/UrgencyBadge";
 
 /**
  * Explore result card — per "Explore Trips Blueprint" Trip Card Specification:
@@ -48,6 +49,12 @@ export function ExploreTripCard({ trip, priority = false }: { trip: ExploreTrip;
         >
           {trip.type === "partner" ? "Verified Partner" : "Community"}
         </span>
+        <UrgencyBadge
+          joinedCount={trip.joinedCount}
+          maxGroupSize={trip.maxGroupSize}
+          deadlineDate={trip.deadlineDate}
+          className="absolute bottom-2.5 left-2.5"
+        />
         <button
           aria-label={saved ? "Remove from saved trips" : "Save trip"}
           aria-pressed={saved}

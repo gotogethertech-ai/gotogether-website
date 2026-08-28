@@ -92,6 +92,9 @@ export async function fetchLiveTrips(supabase: SupaClient, limit?: number): Prom
       durationMax: t.duration_max,
       price: t.price,
       originalPrice: t.original_price,
+      joinedCount: joined,
+      maxGroupSize: t.max_group_size,
+      deadlineDate: t.kind === "verified_partner" ? t.fixed_end_date : t.availability_end,
     };
   });
 }

@@ -68,6 +68,10 @@ export type TripDetail = {
   minAge?: number | null;
   maxAge?: number | null;
   genderRestriction?: "any" | "women_only" | "men_only";
+  // The ISO date this trip closes to new joiners — availability_end
+  // (community) or fixed_end_date (partner) — backing the "2 spots left" /
+  // "2 days left" urgency badge, see lib/trip-dates.ts's getUrgencyBadge.
+  deadlineDate?: string | null;
 };
 
 /** The one fully-authored trip, matching "GoTogether Trip Details Page.dc.html"

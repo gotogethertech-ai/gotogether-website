@@ -36,6 +36,9 @@ export async function getRealHomepageTrips(): Promise<{
     minAge: t.minAge,
     maxAge: t.maxAge,
     genderRestriction: t.genderRestriction,
+    joinedCount: t.joinedCount,
+    maxGroupSize: t.maxGroupSize,
+    deadlineDate: t.deadlineDate,
   }));
 
   const partners: PartnerTrip[] = partner.slice(0, 6).map((t) => ({
@@ -51,6 +54,9 @@ export async function getRealHomepageTrips(): Promise<{
     minAge: t.minAge,
     maxAge: t.maxAge,
     genderRestriction: t.genderRestriction,
+    joinedCount: t.joinedCount,
+    maxGroupSize: t.maxGroupSize,
+    deadlineDate: t.deadlineDate,
   }));
 
   return { featured, partners, heroPeek: featured.slice(0, 3) };

@@ -13,6 +13,7 @@ import { getRealTripDetailServer } from "@/lib/real-trip-details-server";
 import { genderRestrictionLabel, formatAgeRange } from "@/lib/trip-dates";
 import { PriceTag } from "@/components/ui/PriceTag";
 import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
+import { UrgencyBadge } from "@/components/ui/UrgencyBadge";
 
 // Real trip ids aren't known at build time — every /trips/[id] request is
 // rendered on demand against the live database rather than a fixed set of
@@ -85,11 +86,16 @@ export default async function TripDetailsPage({
               <h1 className="mb-3 font-display text-[28px] leading-tight font-bold tracking-tight">
                 {trip.title}
               </h1>
-              {metaRow.length > 0 && (
-                <div className="mb-2.5 flex flex-wrap gap-4 text-[12.5px] text-text-tertiary">
+              {(metaRow.length > 0 || trip.deadlineDate) && (
+                <div className="mb-2.5 flex flex-wrap items-center gap-4 text-[12.5px] text-text-tertiary">
                   {metaRow.map((m) => (
                     <div key={m}>{m}</div>
                   ))}
+                  <UrgencyBadge
+                    joinedCount={trip.membersJoined}
+                    maxGroupSize={trip.membersMax}
+                    deadlineDate={trip.deadlineDate}
+                  />
                 </div>
               )}
               {trip.kind === "community" && <AvailabilityDateNotice compact />}

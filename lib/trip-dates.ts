@@ -57,6 +57,57 @@ export function daysUntilAvailabilityStart(availabilityStart: string | null): nu
   return Math.round((new Date(availabilityStart).getTime() - Date.now()) / 86400000);
 }
 
+// ---------------------------------------------------------------------
+// Urgency badge — "2 spots left" / "2 days left" shown on trip cards and
+// the detail page (Aug 28 product decision). A trip qualifies once either
+// runs low: spots remaining out of max_group_size, or days remaining
+// until the trip closes to new joiners (availability_end for community
+// trips, fixed_end_date for Verified Partner trips — same "closes at the
+// end of the window" cutoff used to filter stale trips off browse
+// surfaces, see lib/real-explore-shared.ts's fetchLiveTrips). When both
+// qualify, spots-left wins — running out of room is the harder deadline,
+// since a trip can still theoretically be joined right up to its last
+// day but not once it's full.
+const URGENCY_SPOTS_THRESHOLD = 3;
+const URGENCY_DAYS_THRESHOLD = 3;
+
+export type UrgencyBadge = { kind: "spots" | "days"; value: number };
+
+/** `deadlineDate` is the ISO date the trip stops accepting new joiners
+ * (availability_end / fixed_end_date) — pass null when unknown/unset. */
+export function getUrgencyBadge(params: {
+  joinedCount: number | null | undefined;
+  maxGroupSize: number | null | undefined;
+  deadlineDate: string | null | undefined;
+}): UrgencyBadge | null {
+  const { joinedCount, maxGroupSize, deadlineDate } = params;
+
+  if (maxGroupSize && maxGroupSize > 0) {
+    const spotsLeft = maxGroupSize - (joinedCount ?? 0);
+    if (spotsLeft > 0 && spotsLeft <= URGENCY_SPOTS_THRESHOLD) {
+      return { kind: "spots", value: spotsLeft };
+    }
+  }
+
+  if (deadlineDate) {
+    const daysLeft = Math.ceil((new Date(deadlineDate).getTime() - Date.now()) / 86400000);
+    if (daysLeft >= 0 && daysLeft <= URGENCY_DAYS_THRESHOLD) {
+      return { kind: "days", value: daysLeft };
+    }
+  }
+
+  return null;
+}
+
+/** "2 spots left" / "1 spot left" / "Today" / "1 day left" / "2 days left". */
+export function formatUrgencyBadge(badge: UrgencyBadge): string {
+  if (badge.kind === "spots") {
+    return `${badge.value} spot${badge.value === 1 ? "" : "s"} left`;
+  }
+  if (badge.value === 0) return "Last day to join";
+  return `${badge.value} day${badge.value === 1 ? "" : "s"} left`;
+}
+
 type GenderRestriction = "any" | "women_only" | "men_only";
 
 /** "Mixed group" / "Women only" / "Men only" — single source of truth for
