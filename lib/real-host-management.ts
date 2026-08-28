@@ -342,3 +342,15 @@ export async function closeRegistrations(tripId: string): Promise<void> {
   const { error } = await supabase.from("trips").update({ registrations_closed: true }).eq("id", tripId);
   if (error) throw new Error(error.message);
 }
+
+/** Organizer-initiated: marks a live/in_progress trip "completed". Unlike
+ * its siblings above, this goes through the mark_trip_completed() RPC
+ * rather than a plain .update(), because it validates the status
+ * transition (only live/in_progress → completed) beyond what a simple RLS
+ * check covers. Trips never move to "completed" automatically — this is
+ * the only path short of an admin override (see migration 035/036). */
+export async function markTripCompleted(tripId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("mark_trip_completed", { p_trip_id: tripId });
+  if (error) throw new Error(error.message);
+}

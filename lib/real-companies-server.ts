@@ -100,7 +100,16 @@ export async function getRealCompanyTripsServer(companyId: string): Promise<Expl
     .order("created_at", { ascending: false });
   if (error || !trips || trips.length === 0) return [];
 
-  const tripIds = trips.map((t) => t.id);
+  // Same availability_end cutoff as lib/real-explore-shared.ts's
+  // fetchLiveTrips — a community trip stops appearing once its window has
+  // fully passed; partner trips (fixed dates) are unaffected.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const liveTrips = trips.filter(
+    (t) => t.kind === "verified_partner" || !t.availability_end || t.availability_end >= todayIso
+  );
+  if (liveTrips.length === 0) return [];
+
+  const tripIds = liveTrips.map((t) => t.id);
   const { data: members } = await supabase
     .from("trip_members")
     .select("trip_id")
@@ -111,14 +120,14 @@ export async function getRealCompanyTripsServer(companyId: string): Promise<Expl
     memberCounts.set(m.trip_id, (memberCounts.get(m.trip_id) ?? 0) + 1);
   }
 
-  const organizerIds = Array.from(new Set(trips.map((t) => t.organizer_id).filter(Boolean)));
+  const organizerIds = Array.from(new Set(liveTrips.map((t) => t.organizer_id).filter(Boolean)));
   const trustByOrganizer = new Map<string, number>();
   if (organizerIds.length > 0) {
     const { data: trustRows } = await supabase.from("trust_scores").select("user_id, score").in("user_id", organizerIds);
     for (const r of trustRows ?? []) trustByOrganizer.set(r.user_id, Number(r.score));
   }
 
-  return trips.map((t): ExploreTrip => {
+  return liveTrips.map((t): ExploreTrip => {
     const dest = Array.isArray(t.destinations) ? t.destinations[0] : t.destinations;
     const organizer = Array.isArray(t.users) ? t.users[0] : t.users;
     const joined = memberCounts.get(t.id) ?? 0;

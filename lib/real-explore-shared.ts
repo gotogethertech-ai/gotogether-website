@@ -24,8 +24,20 @@ export async function fetchLiveTrips(supabase: SupaClient, limit?: number): Prom
 
   if (limit) query = query.limit(limit);
 
-  const { data: trips, error } = await query;
-  if (error || !trips) return [];
+  const { data: allTrips, error } = await query;
+  if (error || !allTrips) return [];
+
+  // A community trip stops taking new joiners once its availability window
+  // has fully passed (joining closes at availability_end, not at the
+  // window's start — see the Aug 28 trip-lifecycle discussion). This is a
+  // query-time filter only: the trip's DB status stays "live" until the
+  // organizer explicitly marks it completed via Host Management. Partner
+  // trips are excluded from this filter — they run on fixed_start_date/
+  // fixed_end_date, a different (confirmed-departure) date model.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const trips = allTrips.filter(
+    (t) => t.kind === "verified_partner" || !t.availability_end || t.availability_end >= todayIso
+  );
 
   const tripIds = trips.map((t) => t.id);
   const memberCounts = new Map<string, number>();

@@ -22,6 +22,7 @@ import {
   deleteDraftTrip,
   updateTripDetails,
   closeRegistrations,
+  markTripCompleted,
   getEditableTripFields,
   type EditableTripFields,
 } from "@/lib/real-host-management";
@@ -229,6 +230,16 @@ export function HostManagementClient({ tripId }: { tripId: string }) {
     }
   }
 
+  async function handleMarkCompleted() {
+    setActionError(null);
+    try {
+      await markTripCompleted(tripId);
+      await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Couldn't mark this trip completed. Try again.");
+    }
+  }
+
   async function handleSaveEdit(patch: Partial<EditableTripFields>) {
     await updateTripDetails(tripId, patch);
     await load();
@@ -330,6 +341,7 @@ export function HostManagementClient({ tripId }: { tripId: string }) {
               onDeleteDraft={handleDeleteDraft}
               onCancel={handleCancel}
               onCloseRegistrations={handleCloseRegistrations}
+              onMarkCompleted={handleMarkCompleted}
               onViewTab={setTab}
             />
           )}
@@ -440,6 +452,7 @@ function OverviewTab({
   onDeleteDraft,
   onCancel,
   onCloseRegistrations,
+  onMarkCompleted,
   onViewTab,
 }: {
   trip: HostedTrip;
@@ -452,10 +465,12 @@ function OverviewTab({
   onDeleteDraft: () => void;
   onCancel: (reason: string) => void;
   onCloseRegistrations: () => void;
+  onMarkCompleted: () => void;
   onViewTab: (tab: TabKey) => void;
 }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmComplete, setConfirmComplete] = useState(false);
 
   if (status === "draft") {
     return (
@@ -532,19 +547,35 @@ function OverviewTab({
         </p>
       )}
 
-      {(status === "live" || status === "full") && (
+      {(status === "live" || status === "full" || status === "in-progress") && (
         <div className="rounded-2xl border border-border p-5">
           <h2 className="mb-3 font-display text-base font-bold">Trip settings</h2>
+          {(status === "live" || status === "full") && (
+            <div className="flex items-center justify-between border-b border-border-divider py-3">
+              <div>
+                <div className="text-[13px] font-semibold">Close registrations</div>
+                <div className="text-[11px] text-text-muted">Existing pending requests stay actionable</div>
+              </div>
+              <button
+                onClick={onCloseRegistrations}
+                className="rounded-full border border-border-input px-4 py-2 text-[12px] font-semibold hover:bg-surface-hover"
+              >
+                Close
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-between border-b border-border-divider py-3">
             <div>
-              <div className="text-[13px] font-semibold">Close registrations</div>
-              <div className="text-[11px] text-text-muted">Existing pending requests stay actionable</div>
+              <div className="text-[13px] font-semibold">Mark as completed</div>
+              <div className="text-[11px] text-text-muted">
+                Trips never move to Past Trips automatically — do this once the trip has actually happened
+              </div>
             </div>
             <button
-              onClick={onCloseRegistrations}
+              onClick={() => setConfirmComplete(true)}
               className="rounded-full border border-border-input px-4 py-2 text-[12px] font-semibold hover:bg-surface-hover"
             >
-              Close
+              Mark Completed
             </button>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-[oklch(96%_0.03_25)] px-3 py-3 -mx-3 mt-1">
@@ -573,6 +604,18 @@ function OverviewTab({
             onCancel(reason);
           }}
           onCancel={() => setConfirmCancel(false)}
+        />
+      )}
+
+      {confirmComplete && (
+        <ConfirmDialog
+          title="Mark this trip as completed? It'll move to read-only and can show up in Past Trips on the homepage. This can't be undone."
+          confirmLabel="Mark Completed"
+          onConfirm={() => {
+            setConfirmComplete(false);
+            onMarkCompleted();
+          }}
+          onCancel={() => setConfirmComplete(false)}
         />
       )}
     </div>

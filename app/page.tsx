@@ -6,6 +6,7 @@ import { SearchIcon, ChatBubbleIcon, ShieldIcon } from "@/components/icons";
 import { AccentButton } from "@/components/ui/Button";
 import { HeroSearch } from "@/components/HeroSearch";
 import { TripCard, PartnerTripCard } from "@/components/ui/TripCard";
+import { PastTripCard } from "@/components/ui/PastTripCard";
 import { DestinationChip } from "@/components/ui/DestinationChip";
 import { TrustScoreSection } from "@/components/TrustScoreSection";
 import { TripTypesSection } from "@/components/TripTypesSection";
@@ -15,6 +16,13 @@ import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
 import { getRealHomepageTrips } from "@/lib/real-homepage-server";
 import { getActiveDestinations } from "@/lib/destinations-server";
 import { getPublishedTestimonials } from "@/lib/testimonials-server";
+import { getRecentCompletedTrips } from "@/lib/real-past-trips";
+
+// Below this many real completed trips, the Past Trips section stays
+// hidden entirely rather than showing a sparse, unconvincing rail — same
+// "no showcase of near-nothing" reasoning as the Verified Partner Trips
+// section's partners.length > 0 gate.
+const MIN_PAST_TRIPS_TO_SHOW = 3;
 
 // Fixed layout slots for up to 3 hero-peek cards — previously paired with
 // each mock card individually; now assigned by position since real trips
@@ -46,6 +54,7 @@ export default async function Home() {
   const { featured, partners, heroPeek } = await getRealHomepageTrips();
   const destinations = await getActiveDestinations();
   const testimonials = await getPublishedTestimonials();
+  const pastTrips = await getRecentCompletedTrips();
 
   return (
     <>
@@ -251,6 +260,35 @@ export default async function Home() {
                     name={d.name}
                     imgSrc={d.cover_image_url ?? "/placeholders/manali.svg"}
                   />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* PAST TRIPS — proof of real activity on GoTogether: trips an
+            organizer has explicitly marked completed (never automatic —
+            see lib/real-host-management.ts's markTripCompleted). Hidden
+            entirely below MIN_PAST_TRIPS_TO_SHOW so this never shows a
+            sparse, unconvincing rail. */}
+        {pastTrips.length >= MIN_PAST_TRIPS_TO_SHOW && (
+          <section className="bg-surface-alt">
+            <div className="mx-auto max-w-(--section-max-width) px-8 py-14">
+              <p className="mb-2 text-[11px] font-bold tracking-wide text-primary uppercase">
+                Past Trips
+              </p>
+              <h2 className="mb-2 font-display text-[28px] font-bold tracking-tight">
+                Trips that already happened on GoTogether
+              </h2>
+              <p className="mb-7 max-w-[560px] text-[14.5px] leading-relaxed text-text-tertiary">
+                Real trips, wrapped up by real organizers — a look at where GoTogether travellers
+                have actually gone.
+              </p>
+              <div className="rail -mx-8 flex gap-5 overflow-x-auto px-8 pb-1.5 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 lg:grid-cols-3">
+                {pastTrips.map((trip) => (
+                  <div key={trip.id} className="w-[260px] flex-none md:w-auto">
+                    <PastTripCard trip={trip} />
+                  </div>
                 ))}
               </div>
             </div>

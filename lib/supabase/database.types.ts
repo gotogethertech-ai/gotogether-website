@@ -1100,6 +1100,12 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      mark_trip_completed: {
+        Args: {
+          p_trip_id: string
+        }
+        Returns: undefined
+      }
       register_company: {
         Args: {
           p_contact_email?: string
@@ -1151,6 +1157,7 @@ export type Database = {
         | "review_received"
         | "verification_decided"
         | "attendance_reminder"
+        | "trip_completion_reminder"
       review_visibility: "published" | "hidden" | "removed"
       trip_gender_restriction: "any" | "women_only" | "men_only"
       trip_kind: "community" | "verified_partner"
@@ -1318,6 +1325,7 @@ export const Constants = {
         "review_received",
         "verification_decided",
         "attendance_reminder",
+        "trip_completion_reminder",
       ],
       review_visibility: ["published", "hidden", "removed"],
       trip_gender_restriction: ["any", "women_only", "men_only"],
