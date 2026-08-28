@@ -68,7 +68,7 @@ export function ExploreTripCard({ trip, priority = false }: { trip: ExploreTrip;
       </div>
       <div className="p-3.5">
         <div className="mb-0.5 text-[11px] text-text-muted">
-          {trip.destination} &middot; {trip.dates}
+          {trip.destination} &middot; <span className="text-text-tertiary">Available</span> {trip.dates}
         </div>
         <div className="mb-1.5 line-clamp-2 text-sm leading-tight font-bold">
           {trip.title}

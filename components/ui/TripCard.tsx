@@ -81,7 +81,7 @@ export function TripCard({ trip }: { trip: FeaturedTrip }) {
       <div className="p-3.5">
         <div className="mb-1.5 text-sm font-bold">{trip.title}</div>
         <div className="mb-2 text-[11.5px] text-text-muted">
-          {trip.dates} &middot; {trip.members} joined
+          <span className="text-text-tertiary">Available</span> {trip.dates} &middot; {trip.members} joined
         </div>
         <div className="flex items-center justify-between">
           <span className="inline-flex items-center gap-1 rounded-md bg-trust-bg px-2 py-0.5 text-[10.5px] font-semibold text-trust-fg">
@@ -117,7 +117,7 @@ export function PartnerTripCard({ trip }: { trip: PartnerTrip }) {
         </span>
         <div className="mb-1 text-sm font-bold">{trip.title}</div>
         <div className="mb-2 text-[11.5px] text-text-muted">
-          {trip.dates} &middot; {trip.seats} seats left
+          <span className="text-text-tertiary">Available</span> {trip.dates} &middot; {trip.seats} seats left
         </div>
         <div className="text-[13px] font-bold text-text-secondary">
           {trip.price}

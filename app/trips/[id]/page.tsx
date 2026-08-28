@@ -44,7 +44,7 @@ export default async function TripDetailsPage({
   const hasGroupRestriction = !!(trip.genderRestriction && trip.genderRestriction !== "any") || !!ageRange;
 
   const metaRow: string[] = [];
-  if (trip.dates) metaRow.push(`📅 ${trip.dates}${trip.duration ? ` · ${trip.duration}` : ""}`);
+  if (trip.dates) metaRow.push(`📅 Available ${trip.dates}${trip.duration ? ` · ${trip.duration}` : ""}`);
   if (trip.tripType) metaRow.push(`🎒 ${trip.tripType}`);
   if (hasGroupRestriction) {
     const parts = [genderRestrictionLabel(trip.genderRestriction)];
