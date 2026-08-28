@@ -41,6 +41,23 @@ function budgetRange(fields: CreateTripFields): { min: number | null; max: numbe
 export async function publishTrip(fields: CreateTripFields, organizerId: string): Promise<string> {
   const supabase = createClient();
 
+  // Defensive session check, right before the write that actually needs
+  // it. The trips_insert_own RLS policy requires organizer_id to equal
+  // auth.uid() from the request's own JWT — if the browser's access token
+  // had quietly expired (or a background refresh hadn't finished yet) at
+  // the moment Publish was clicked, the insert fails with Postgres's bare
+  // "row-level security policy" denial even though the account, its
+  // company membership, and verification are all otherwise fine (this
+  // surfaced as exactly that symptom — see the Aug 28 investigation).
+  // Forcing a fresh getUser() here (round-trips to Supabase Auth, unlike
+  // getSession() which can return a stale cached token) either recovers a
+  // token that was about to lapse, or fails fast with a message that
+  // actually explains what happened instead of the generic RLS text.
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user || userData.user.id !== organizerId) {
+    throw new Error("Your session expired — refresh the page and sign in again before publishing.");
+  }
+
   if (!fields.destinationSlug) throw new Error("Pick a destination before publishing.");
 
   const { data: destRow, error: destError } = await supabase
