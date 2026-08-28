@@ -129,16 +129,32 @@ export async function publishTrip(fields: CreateTripFields, organizerId: string)
     .single();
 
   if (tripError || !trip) {
-    // Postgres's raw RLS-denial message ("new row violates row-level
-    // security policy...") is meaningless to a host — surface something
-    // actionable instead. Every other insert failure still passes its
-    // real message through.
-    if (tripError?.message?.toLowerCase().includes("row-level security")) {
-      throw new Error(
-        "Couldn't publish this trip — your account may not have permission to create this kind of trip right now. Try again, or contact support if it keeps happening."
-      );
-    }
-    throw new Error(tripError?.message ?? "Couldn't publish the trip. Try again.");
+    // TEMPORARY (Aug 28 debugging): a Goa/Star Travels partner trip is
+    // failing here even though the exact same insert succeeds when
+    // simulated directly against the database for this account, and even
+    // after a forced session refresh above. Surfacing the real Postgres
+    // error (with the exact payload that was attempted) instead of the
+    // friendly generic text, so the actual cause shows up on-screen
+    // without needing DevTools. Revert to the friendly-message version
+    // once the real cause is found.
+    const debugPayload = {
+      organizer_id: organizerId,
+      kind: fields.kind,
+      company_id: companyId,
+      destination_id: destRow.id,
+      isPartner,
+      fixed_start_date: isPartner ? fields.fixedStartDate || null : null,
+      fixed_end_date: isPartner ? fields.fixedEndDate || null : null,
+      price: isPartner && fields.price ? Number(fields.price) : null,
+      original_price: isPartner && fields.originalPrice ? Number(fields.originalPrice) : null,
+    };
+    throw new Error(
+      `DEBUG — publish failed.\nPostgres error: ${tripError?.message ?? "no trip row returned"}${
+        tripError?.code ? ` (code ${tripError.code})` : ""
+      }${tripError?.details ? `\nDetails: ${tripError.details}` : ""}${
+        tripError?.hint ? `\nHint: ${tripError.hint}` : ""
+      }\nPayload attempted: ${JSON.stringify(debugPayload)}`
+    );
   }
 
   // Organizer is also a member — mirrors the schema convention the rest

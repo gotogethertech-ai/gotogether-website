@@ -137,7 +137,7 @@ export function ReviewStep({
       </div>
 
       {publishError && (
-        <p role="alert" aria-live="polite" className="mt-3 text-[12px] font-medium text-danger">
+        <p role="alert" aria-live="polite" className="mt-3 whitespace-pre-wrap text-[12px] font-medium text-danger">
           {publishError}
         </p>
       )}
