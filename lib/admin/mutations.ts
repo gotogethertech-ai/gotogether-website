@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
+import type { PriceBreakdownItem } from "@/components/ui/PriceBreakdownEditor";
+import type { ItineraryDay } from "@/components/ui/ItineraryEditor";
 
 /**
  * Admin panel mutations — thin wrappers around the admin_* Postgres RPCs
@@ -329,6 +331,20 @@ export async function updateTrip(
     kind: Database["public"]["Enums"]["trip_kind"];
     companyId: string;
     clearCompany: boolean;
+    // Verified Partner only (migration 037/038) — descriptive pricing
+    // breakdown, inclusions/exclusions lists, and day-wise itinerary OR a
+    // PDF upload instead. NULL/undefined means "leave unchanged"; the
+    // matching clear* flag means "set to null" (see admin_update_trip).
+    priceBreakdown: PriceBreakdownItem[];
+    clearPriceBreakdown: boolean;
+    inclusions: string[];
+    clearInclusions: boolean;
+    exclusions: string[];
+    clearExclusions: boolean;
+    itineraryDays: ItineraryDay[];
+    clearItineraryDays: boolean;
+    itineraryPdfUrl: string;
+    clearItineraryPdfUrl: boolean;
   }>
 ): Promise<void> {
   const supabase = createClient();
@@ -353,11 +369,38 @@ export async function updateTrip(
     p_kind: patch.kind,
     p_company_id: patch.companyId,
     p_clear_company: patch.clearCompany,
+    p_price_breakdown: patch.priceBreakdown as unknown as Database["public"]["Tables"]["trips"]["Row"]["price_breakdown"],
+    p_clear_price_breakdown: patch.clearPriceBreakdown,
+    p_inclusions: patch.inclusions,
+    p_clear_inclusions: patch.clearInclusions,
+    p_exclusions: patch.exclusions,
+    p_clear_exclusions: patch.clearExclusions,
+    p_itinerary_days: patch.itineraryDays as unknown as Database["public"]["Tables"]["trips"]["Row"]["itinerary_days"],
+    p_clear_itinerary_days: patch.clearItineraryDays,
+    p_itinerary_pdf_url: patch.itineraryPdfUrl,
+    p_clear_itinerary_pdf_url: patch.clearItineraryPdfUrl,
   });
   if (error) {
     if (error.message.includes("MAX_GROUP_SIZE_BELOW_MEMBER_COUNT")) throw new MaxGroupSizeBelowMemberCountError();
     throw new Error(error.message);
   }
+}
+
+/** Admin-side itinerary PDF upload — staff is permitted to write into any
+ * organizer's folder in the trip-documents bucket via the `OR is_staff()`
+ * clause on its storage RLS policies (migration 037), so this uploads
+ * under the trip's organizerId (not the signed-in admin's id) to keep the
+ * file colocated with the rest of that organizer's uploads. */
+export async function uploadItineraryPdfAsAdmin(organizerId: string, file: File): Promise<string> {
+  const supabase = createClient();
+  const path = `${organizerId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabase.storage.from("trip-documents").upload(path, file, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from("trip-documents").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Destinations (launch-tier catalog, admin-managed) ─────────────────

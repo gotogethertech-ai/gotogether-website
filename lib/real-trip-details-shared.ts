@@ -33,7 +33,7 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
   const { data: trip, error } = await supabase
     .from("trips")
     .select(
-      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url)"
+      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, price_breakdown, inclusions, exclusions, itinerary_days, itinerary_pdf_url, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -103,5 +103,18 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
     maxAge: trip.max_age,
     genderRestriction: trip.gender_restriction,
     deadlineDate: isPartner ? trip.fixed_end_date : trip.availability_end,
+    ...(isPartner
+      ? {
+          priceBreakdown: Array.isArray(trip.price_breakdown)
+            ? (trip.price_breakdown as unknown as { label: string; amount: number | null }[])
+            : undefined,
+          inclusions: trip.inclusions ?? undefined,
+          exclusions: trip.exclusions ?? undefined,
+          itineraryDays: Array.isArray(trip.itinerary_days)
+            ? (trip.itinerary_days as unknown as { day: string; title: string; text: string }[])
+            : undefined,
+          itineraryPdfUrl: trip.itinerary_pdf_url ?? undefined,
+        }
+      : {}),
   };
 }

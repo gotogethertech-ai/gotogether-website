@@ -619,6 +619,10 @@ export type Database = {
           fixed_start_date: string | null
           gender_restriction: Database["public"]["Enums"]["trip_gender_restriction"]
           id: string
+          inclusions: string[] | null
+          itinerary_days: Json | null
+          itinerary_pdf_url: string | null
+          exclusions: string[] | null
           kind: Database["public"]["Enums"]["trip_kind"]
           max_age: number | null
           max_group_size: number
@@ -626,6 +630,7 @@ export type Database = {
           organizer_id: string
           original_price: number | null
           price: number | null
+          price_breakdown: Json | null
           registrations_closed: boolean
           start_date: string | null
           status: Database["public"]["Enums"]["trip_status"]
@@ -655,6 +660,10 @@ export type Database = {
           fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
           id?: string
+          inclusions?: string[] | null
+          itinerary_days?: Json | null
+          itinerary_pdf_url?: string | null
+          exclusions?: string[] | null
           kind?: Database["public"]["Enums"]["trip_kind"]
           max_age?: number | null
           max_group_size: number
@@ -662,6 +671,7 @@ export type Database = {
           organizer_id: string
           original_price?: number | null
           price?: number | null
+          price_breakdown?: Json | null
           registrations_closed?: boolean
           start_date?: string | null
           status?: Database["public"]["Enums"]["trip_status"]
@@ -691,6 +701,10 @@ export type Database = {
           fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
           id?: string
+          inclusions?: string[] | null
+          itinerary_days?: Json | null
+          itinerary_pdf_url?: string | null
+          exclusions?: string[] | null
           kind?: Database["public"]["Enums"]["trip_kind"]
           max_age?: number | null
           max_group_size?: number
@@ -698,6 +712,7 @@ export type Database = {
           organizer_id?: string
           original_price?: number | null
           price?: number | null
+          price_breakdown?: Json | null
           registrations_closed?: boolean
           start_date?: string | null
           status?: Database["public"]["Enums"]["trip_status"]
@@ -1044,18 +1059,28 @@ export type Database = {
           p_budget_min?: number
           p_clear_company?: boolean
           p_clear_cover_image?: boolean
+          p_clear_exclusions?: boolean
+          p_clear_inclusions?: boolean
+          p_clear_itinerary_days?: boolean
+          p_clear_itinerary_pdf_url?: boolean
+          p_clear_price_breakdown?: boolean
           p_company_id?: string
           p_cover_image_url?: string
           p_description?: string
           p_destination_id?: string
           p_duration_max?: number
           p_duration_min?: number
+          p_exclusions?: string[]
           p_gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
+          p_inclusions?: string[]
+          p_itinerary_days?: Json
+          p_itinerary_pdf_url?: string
           p_kind?: Database["public"]["Enums"]["trip_kind"]
           p_max_age?: number
           p_max_group_size?: number
           p_min_age?: number
           p_organizer_id?: string
+          p_price_breakdown?: Json
           p_title?: string
           p_trip_id: string
         }

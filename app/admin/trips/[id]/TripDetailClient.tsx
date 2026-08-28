@@ -21,6 +21,7 @@ import {
   addTripMember,
   TripFullError,
   updateTrip,
+  uploadItineraryPdfAsAdmin,
   MaxGroupSizeBelowMemberCountError,
 } from "@/lib/admin/mutations";
 import type { Database } from "@/lib/supabase/database.types";
@@ -29,6 +30,9 @@ import { useAuth, MINIMUM_AGE } from "@/lib/auth-context";
 import { can } from "@/lib/admin/guard";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import { AvailabilityDatePicker } from "@/components/ui/AvailabilityDatePicker";
+import { PriceBreakdownEditor, type PriceBreakdownItem } from "@/components/ui/PriceBreakdownEditor";
+import { TagListEditor } from "@/components/ui/InclusionsExclusionsEditor";
+import { ItineraryEditor, type ItineraryDay } from "@/components/ui/ItineraryEditor";
 
 const DURATION_MIN_DAYS = 1;
 const DURATION_MAX_DAYS = 14;
@@ -450,6 +454,20 @@ function EditTripDialog({ trip, onClose, onSaved }: { trip: AdminTripRow; onClos
   const [genderRestriction, setGenderRestriction] = useState<Database["public"]["Enums"]["trip_gender_restriction"]>(trip.gender_restriction);
   const [coverImageUrl, setCoverImageUrl] = useState(trip.cover_image_url ?? "");
 
+  // Verified Partner only — trip.kind on the raw admin row uses the DB
+  // enum value "verified_partner" (unlike the organizer-side mapped
+  // "community"|"partner" type in EditableTripFields).
+  const isPartner = trip.kind === "verified_partner";
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdownItem[]>(
+    Array.isArray(trip.price_breakdown) ? (trip.price_breakdown as unknown as PriceBreakdownItem[]) : []
+  );
+  const [inclusions, setInclusions] = useState<string[]>(trip.inclusions ?? []);
+  const [exclusions, setExclusions] = useState<string[]>(trip.exclusions ?? []);
+  const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>(
+    Array.isArray(trip.itinerary_days) ? (trip.itinerary_days as unknown as ItineraryDay[]) : []
+  );
+  const [itineraryPdfUrl, setItineraryPdfUrl] = useState<string | null>(trip.itinerary_pdf_url ?? null);
+
   const [organizerQuery, setOrganizerQuery] = useState("");
   const [organizers, setOrganizers] = useState<{ id: string; name: string; phone: string | null; email: string | null; verification_status: string }[]>([]);
   const [organizerId, setOrganizerId] = useState(trip.organizer_id);
@@ -515,6 +533,20 @@ function EditTripDialog({ trip, onClose, onSaved }: { trip: AdminTripRow; onClos
         coverImageUrl: coverImageUrl || undefined,
         clearCoverImage: !coverImageUrl,
         organizerId: organizerId !== trip.organizer_id ? organizerId : undefined,
+        ...(isPartner
+          ? {
+              priceBreakdown: priceBreakdown.filter((row) => row.label.trim() || row.amount != null),
+              clearPriceBreakdown: priceBreakdown.length === 0,
+              inclusions,
+              clearInclusions: inclusions.length === 0,
+              exclusions,
+              clearExclusions: exclusions.length === 0,
+              itineraryDays,
+              clearItineraryDays: itineraryDays.length === 0,
+              itineraryPdfUrl: itineraryPdfUrl ?? undefined,
+              clearItineraryPdfUrl: !itineraryPdfUrl,
+            }
+          : {}),
       });
       onSaved();
     } catch (err) {
@@ -668,6 +700,28 @@ function EditTripDialog({ trip, onClose, onSaved }: { trip: AdminTripRow; onClos
             className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
           />
         </div>
+
+        {isPartner && (
+          <div className="mb-4 rounded-lg border border-[oklch(85%_0.005_255)] p-3">
+            <p className="mb-3 text-[11.5px] font-semibold">Price breakdown, inclusions & itinerary</p>
+            <div className="mb-4">
+              <PriceBreakdownEditor items={priceBreakdown} onChange={setPriceBreakdown} />
+            </div>
+            <div className="mb-4">
+              <TagListEditor label="Inclusions" placeholder="e.g. Accommodation" items={inclusions} onChange={setInclusions} />
+            </div>
+            <div className="mb-4">
+              <TagListEditor label="Exclusions" placeholder="e.g. Flights" items={exclusions} onChange={setExclusions} />
+            </div>
+            <ItineraryEditor
+              days={itineraryDays}
+              pdfUrl={itineraryPdfUrl}
+              onDaysChange={setItineraryDays}
+              onPdfChange={setItineraryPdfUrl}
+              uploadPdf={(file) => uploadItineraryPdfAsAdmin(organizerId, file)}
+            />
+          </div>
+        )}
 
         <div className="mb-4 rounded-lg border border-[oklch(88%_0.02_25)] bg-[oklch(98%_0.01_25)] p-3">
           <label className="mb-1 block text-[11.5px] font-semibold text-[oklch(45%_0.14_25)]">Organizer / host</label>

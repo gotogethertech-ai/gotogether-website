@@ -24,11 +24,15 @@ import {
   closeRegistrations,
   markTripCompleted,
   getEditableTripFields,
+  uploadItineraryPdf,
   type EditableTripFields,
 } from "@/lib/real-host-management";
 import { getDestinations, type AdminDestinationRow } from "@/lib/admin/data";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import { AvailabilityDatePicker } from "@/components/ui/AvailabilityDatePicker";
+import { PriceBreakdownEditor } from "@/components/ui/PriceBreakdownEditor";
+import { TagListEditor } from "@/components/ui/InclusionsExclusionsEditor";
+import { ItineraryEditor } from "@/components/ui/ItineraryEditor";
 
 type TabKey = "overview" | "requests" | "participants" | "edit";
 
@@ -914,6 +918,15 @@ function EditTab({
         maxAge: fields.maxAge,
         genderRestriction: fields.genderRestriction,
         coverImageUrl: fields.coverImageUrl,
+        ...(fields.kind === "partner"
+          ? {
+              priceBreakdown: fields.priceBreakdown,
+              inclusions: fields.inclusions,
+              exclusions: fields.exclusions,
+              itineraryDays: fields.itineraryDays,
+              itineraryPdfUrl: fields.itineraryPdfUrl,
+            }
+          : {}),
       });
       setSaved(true);
       setDirty(false);
@@ -1095,6 +1108,42 @@ function EditTab({
           className="w-full rounded-xl border-[1.5px] border-border-input px-3.5 py-3 text-sm outline-none focus:border-primary font-sans"
         />
       </FieldGroup>
+
+      {/* Verified Partner only — a community trip keeps these fields null
+          (DB-enforced via trips_itinerary_pricing_only_for_partner). */}
+      {fields.kind === "partner" && (
+        <FieldGroup title="Price breakdown, inclusions & itinerary">
+          <div className="mb-5">
+            <PriceBreakdownEditor
+              items={fields.priceBreakdown}
+              onChange={(next) => update("priceBreakdown", next)}
+            />
+          </div>
+          <div className="mb-5">
+            <TagListEditor
+              label="Inclusions"
+              placeholder="e.g. Accommodation"
+              items={fields.inclusions}
+              onChange={(next) => update("inclusions", next)}
+            />
+          </div>
+          <div className="mb-5">
+            <TagListEditor
+              label="Exclusions"
+              placeholder="e.g. Flights"
+              items={fields.exclusions}
+              onChange={(next) => update("exclusions", next)}
+            />
+          </div>
+          <ItineraryEditor
+            days={fields.itineraryDays}
+            pdfUrl={fields.itineraryPdfUrl}
+            onDaysChange={(next) => update("itineraryDays", next)}
+            onPdfChange={(next) => update("itineraryPdfUrl", next)}
+            uploadPdf={(file) => uploadItineraryPdf(organizerId, file)}
+          />
+        </FieldGroup>
+      )}
 
       {dirty && (
         <p className="mb-3 text-[11.5px] font-medium text-text-tertiary">

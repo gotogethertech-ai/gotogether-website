@@ -121,6 +121,16 @@ export default async function TripDetailsPage({
                 </span>
                 <TripStatusChip tripId={trip.id} />
               </div>
+              {trip.priceBreakdown && trip.priceBreakdown.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1">
+                  {trip.priceBreakdown.map((row, i) => (
+                    <div key={i} className="flex items-center justify-between text-[12px] text-text-tertiary">
+                      <span>{row.label}</span>
+                      {row.amount != null && <span className="font-semibold">₹{row.amount.toLocaleString("en-IN")}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <ConditionalSection title="Organized by">
@@ -137,7 +147,17 @@ export default async function TripDetailsPage({
               </p>
             </ConditionalSection>
 
-            <ConditionalSection title="Safety on GoTogether" last={!trip.groupPreferences && !trip.itinerary}>
+            <ConditionalSection
+              title="Safety on GoTogether"
+              last={
+                !trip.groupPreferences &&
+                !trip.itinerary &&
+                !(trip.inclusions && trip.inclusions.length > 0) &&
+                !(trip.exclusions && trip.exclusions.length > 0) &&
+                !(trip.itineraryDays && trip.itineraryDays.length > 0) &&
+                !trip.itineraryPdfUrl
+              }
+            >
               <div className="flex flex-col gap-2.5 text-[12.5px] text-text-secondary">
                 <SafetyLine text="Every traveller completes phone, email, and government ID verification before joining a trip." />
                 <SafetyLine text="Trust Scores are built from real, double-blind reviews after completed trips." />
@@ -148,7 +168,13 @@ export default async function TripDetailsPage({
             {trip.groupPreferences && (
               <ConditionalSection
                 title="Group preferences"
-                last={!trip.itinerary}
+                last={
+                  !trip.itinerary &&
+                  !(trip.inclusions && trip.inclusions.length > 0) &&
+                  !(trip.exclusions && trip.exclusions.length > 0) &&
+                  !(trip.itineraryDays && trip.itineraryDays.length > 0) &&
+                  !trip.itineraryPdfUrl
+                }
               >
                 <div className="flex flex-wrap gap-2">
                   {trip.groupPreferences.map((p) => (
@@ -164,7 +190,15 @@ export default async function TripDetailsPage({
             )}
 
             {trip.itinerary && (
-              <ConditionalSection title="Itinerary" last>
+              <ConditionalSection
+                title="Itinerary"
+                last={
+                  !(trip.inclusions && trip.inclusions.length > 0) &&
+                  !(trip.exclusions && trip.exclusions.length > 0) &&
+                  !(trip.itineraryDays && trip.itineraryDays.length > 0) &&
+                  !trip.itineraryPdfUrl
+                }
+              >
                 <div className="flex flex-col gap-3.5">
                   {trip.itinerary.map((day) => (
                     <div key={day.day} className="flex gap-3.5">
@@ -175,6 +209,76 @@ export default async function TripDetailsPage({
                     </div>
                   ))}
                 </div>
+              </ConditionalSection>
+            )}
+
+            {((trip.inclusions && trip.inclusions.length > 0) || (trip.exclusions && trip.exclusions.length > 0)) && (
+              <ConditionalSection
+                title="What's included"
+                last={!(trip.itineraryDays && trip.itineraryDays.length > 0) && !trip.itineraryPdfUrl}
+              >
+                <div className="grid grid-cols-1 gap-5 min-[500px]:grid-cols-2">
+                  {trip.inclusions && trip.inclusions.length > 0 && (
+                    <div>
+                      <div className="mb-2 text-[11px] font-semibold tracking-wide text-text-tertiary uppercase">
+                        Included
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {trip.inclusions.map((item) => (
+                          <li key={item} className="flex items-start gap-1.5 text-[12.5px] text-text-secondary">
+                            <span className="text-[oklch(45%_0.15_185)]">✓</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {trip.exclusions && trip.exclusions.length > 0 && (
+                    <div>
+                      <div className="mb-2 text-[11px] font-semibold tracking-wide text-text-tertiary uppercase">
+                        Not included
+                      </div>
+                      <ul className="flex flex-col gap-1.5">
+                        {trip.exclusions.map((item) => (
+                          <li key={item} className="flex items-start gap-1.5 text-[12.5px] text-text-secondary">
+                            <span className="text-text-muted">✕</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </ConditionalSection>
+            )}
+
+            {((trip.itineraryDays && trip.itineraryDays.length > 0) || trip.itineraryPdfUrl) && (
+              <ConditionalSection title="Detailed itinerary" last>
+                {trip.itineraryDays && trip.itineraryDays.length > 0 ? (
+                  <div className="flex flex-col gap-3.5">
+                    {trip.itineraryDays.map((day, i) => (
+                      <div key={i} className="rounded-xl border border-border-divider p-3.5">
+                        <div className="mb-1 flex items-baseline gap-2">
+                          <span className="text-[12.5px] font-bold text-primary">{day.day}</span>
+                          {day.title && <span className="text-[12.5px] font-semibold text-text-secondary">{day.title}</span>}
+                        </div>
+                        {day.text && <p className="text-[12.5px] leading-[1.7] text-text-secondary">{day.text}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  trip.itineraryPdfUrl && (
+                    <a
+                      href={trip.itineraryPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2.5 rounded-xl border border-border-divider px-4 py-3 text-[12.5px] font-semibold text-primary hover:bg-surface-hover"
+                    >
+                      <span aria-hidden="true" className="text-lg">📄</span>
+                      View the full itinerary (PDF)
+                    </a>
+                  )
+                )}
               </ConditionalSection>
             )}
           </div>

@@ -61,6 +61,16 @@ export type TripDetail = {
   about: string;
   groupPreferences?: string[];
   itinerary?: { day: string; text: string }[];
+  // Verified Partner only (migration 037) — real DB-backed fields, distinct
+  // from the `itinerary` mock field above (which is only ever populated by
+  // AUTHORED_DETAILS/buildFallbackDetail and never wired to a real column).
+  // itineraryDays and itineraryPdfUrl are mutually exclusive in the editor
+  // UI but both may be present/absent independently here.
+  priceBreakdown?: { label: string; amount: number | null }[];
+  inclusions?: string[];
+  exclusions?: string[];
+  itineraryDays?: { day: string; title: string; text: string }[];
+  itineraryPdfUrl?: string | null;
   // Who can join, as set by the organizer in Create Trip (min_age always
   // has a value — defaults to MINIMUM_AGE — max_age/genderRestriction may
   // be unset/"any"). Rendered on the card and detail page so a visitor

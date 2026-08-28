@@ -250,7 +250,11 @@ export async function deleteDraftTrip(tripId: string): Promise<void> {
 }
 
 /** Full editable trip row, for the Edit tab's form — a separate, wider read
- * from HostedTrip (kept thin on purpose for the list/overview views). */
+ * from HostedTrip (kept thin on purpose for the list/overview views).
+ * priceBreakdown/inclusions/exclusions/itineraryDays/itineraryPdfUrl only
+ * ever carry real values for Verified Partner trips (kind === "partner")
+ * — the DB constraint trips_itinerary_pricing_only_for_partner enforces
+ * the reverse for community trips, same convention as fixed pricing. */
 export type EditableTripFields = {
   title: string;
   description: string;
@@ -266,6 +270,12 @@ export type EditableTripFields = {
   maxAge: number | null;
   genderRestriction: "any" | "women_only" | "men_only";
   coverImageUrl: string;
+  kind: "community" | "partner";
+  priceBreakdown: { label: string; amount: number | null }[];
+  inclusions: string[];
+  exclusions: string[];
+  itineraryDays: { day: string; title: string; text: string }[];
+  itineraryPdfUrl: string | null;
 };
 
 export async function getEditableTripFields(tripId: string, organizerId: string): Promise<EditableTripFields | null> {
@@ -273,7 +283,7 @@ export async function getEditableTripFields(tripId: string, organizerId: string)
   const { data: trip, error } = await supabase
     .from("trips")
     .select(
-      "title, description, destination_id, availability_start, availability_end, duration_min, duration_max, max_group_size, budget_min, budget_max, min_age, max_age, gender_restriction, cover_image_url, organizer_id"
+      "title, description, destination_id, availability_start, availability_end, duration_min, duration_max, max_group_size, budget_min, budget_max, min_age, max_age, gender_restriction, cover_image_url, organizer_id, kind, price_breakdown, inclusions, exclusions, itinerary_days, itinerary_pdf_url"
     )
     .eq("id", tripId)
     .maybeSingle();
@@ -295,6 +305,12 @@ export async function getEditableTripFields(tripId: string, organizerId: string)
     maxAge: trip.max_age,
     genderRestriction: trip.gender_restriction,
     coverImageUrl: trip.cover_image_url ?? "",
+    kind: trip.kind === "verified_partner" ? "partner" : "community",
+    priceBreakdown: Array.isArray(trip.price_breakdown) ? (trip.price_breakdown as { label: string; amount: number | null }[]) : [],
+    inclusions: trip.inclusions ?? [],
+    exclusions: trip.exclusions ?? [],
+    itineraryDays: Array.isArray(trip.itinerary_days) ? (trip.itinerary_days as { day: string; title: string; text: string }[]) : [],
+    itineraryPdfUrl: trip.itinerary_pdf_url,
   };
 }
 
@@ -315,6 +331,11 @@ export async function updateTripDetails(
     maxAge?: number | null;
     genderRestriction?: "any" | "women_only" | "men_only";
     coverImageUrl?: string;
+    priceBreakdown?: { label: string; amount: number | null }[];
+    inclusions?: string[];
+    exclusions?: string[];
+    itineraryDays?: { day: string; title: string; text: string }[];
+    itineraryPdfUrl?: string | null;
   }
 ): Promise<void> {
   const supabase = createClient();
@@ -333,8 +354,30 @@ export async function updateTripDetails(
   if (patch.maxAge !== undefined) update.max_age = patch.maxAge;
   if (patch.genderRestriction !== undefined) update.gender_restriction = patch.genderRestriction;
   if (patch.coverImageUrl !== undefined) update.cover_image_url = patch.coverImageUrl || null;
+  if (patch.priceBreakdown !== undefined) update.price_breakdown = patch.priceBreakdown.length > 0 ? patch.priceBreakdown : null;
+  if (patch.inclusions !== undefined) update.inclusions = patch.inclusions.length > 0 ? patch.inclusions : null;
+  if (patch.exclusions !== undefined) update.exclusions = patch.exclusions.length > 0 ? patch.exclusions : null;
+  if (patch.itineraryDays !== undefined) update.itinerary_days = patch.itineraryDays.length > 0 ? patch.itineraryDays : null;
+  if (patch.itineraryPdfUrl !== undefined) update.itinerary_pdf_url = patch.itineraryPdfUrl;
   const { error } = await supabase.from("trips").update(update).eq("id", tripId);
   if (error) throw new Error(error.message);
+}
+
+/** Uploads an itinerary PDF to the trip-documents storage bucket (see
+ * migration 037) under the organizer's own folder, matching the same
+ * folder-scoped-by-uid convention as avatar uploads, and returns its
+ * public URL. Filename is namespaced with a timestamp so re-uploading
+ * doesn't collide with (or need to explicitly delete) a previous file. */
+export async function uploadItineraryPdf(organizerId: string, file: File): Promise<string> {
+  const supabase = createClient();
+  const path = `${organizerId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabase.storage.from("trip-documents").upload(path, file, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from("trip-documents").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function closeRegistrations(tripId: string): Promise<void> {
