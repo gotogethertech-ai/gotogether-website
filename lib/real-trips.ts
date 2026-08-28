@@ -56,12 +56,35 @@ export async function publishTrip(fields: CreateTripFields, organizerId: string)
   const isPartner = fields.kind === "verified_partner";
   const { min, max } = budgetRange(fields);
 
+  // fields.companyId is set client-side when the Partner option was
+  // picked (DestinationStep), but that value can go stale — a sessionStorage
+  // draft resumed later, or the company lookup hadn't resolved yet at
+  // click time. The trips_insert_own RLS policy requires company_id to be
+  // set AND the caller to actually belong to that verified company, so a
+  // stale/missing id fails with a bare "row-level security policy"
+  // error that gives the host no idea what went wrong. Re-resolving it
+  // here, right before the insert, means a real problem (never
+  // registered a company, or it's no longer verified) gets a clear
+  // message instead.
+  let companyId: string | null = null;
+  if (isPartner) {
+    const { data: membership } = await supabase
+      .from("company_users")
+      .select("companies(id, status)")
+      .maybeSingle();
+    const company = membership ? (Array.isArray(membership.companies) ? membership.companies[0] : membership.companies) : null;
+    if (!company || company.status !== "verified") {
+      throw new Error("Your company isn't verified — Partner trips can only be published once your company is approved.");
+    }
+    companyId = company.id;
+  }
+
   const { data: trip, error: tripError } = await supabase
     .from("trips")
     .insert({
       organizer_id: organizerId,
       kind: fields.kind,
-      company_id: isPartner ? fields.companyId : null,
+      company_id: companyId,
       title: fields.title.trim(),
       description: fields.description.trim() || null,
       destination_id: destRow.id,
@@ -89,6 +112,15 @@ export async function publishTrip(fields: CreateTripFields, organizerId: string)
     .single();
 
   if (tripError || !trip) {
+    // Postgres's raw RLS-denial message ("new row violates row-level
+    // security policy...") is meaningless to a host — surface something
+    // actionable instead. Every other insert failure still passes its
+    // real message through.
+    if (tripError?.message?.toLowerCase().includes("row-level security")) {
+      throw new Error(
+        "Couldn't publish this trip — your account may not have permission to create this kind of trip right now. Try again, or contact support if it keeps happening."
+      );
+    }
     throw new Error(tripError?.message ?? "Couldn't publish the trip. Try again.");
   }
 
