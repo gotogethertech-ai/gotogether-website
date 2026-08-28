@@ -24,14 +24,30 @@ export type MyCompany = {
 };
 
 /** The signed-in user's registered company, or null if they haven't
- * registered one. RLS on companies/company_users only exposes rows the
- * caller belongs to (via company_users), so no extra userId filter is
- * needed beyond what the session already provides. */
+ * registered one.
+ *
+ * IMPORTANT: company_users' RLS policy (company_users_select_public) is
+ * USING (true) — publicly readable with no per-row scoping by design (any
+ * signed-in visitor can see which company runs a given partner trip) — so
+ * this query MUST filter by the current user's id itself. An earlier
+ * version of this function relied on RLS to scope the row (a bare
+ * .maybeSingle() with no filter), which instead returned an arbitrary row
+ * from the whole company_users table; a user with no company of their own
+ * could get back someone else's verified company, silently unlocking the
+ * Partner trip type for an account that shouldn't have it (see the Aug 28
+ * investigation — this is exactly how a non-company account walked through
+ * the whole Partner flow and only failed at the final publish RLS check). */
 export async function getMyCompany(): Promise<MyCompany | null> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
   const { data, error } = await supabase
     .from("company_users")
     .select("companies(id, name, contact_email, registration_number, gst_number, status)")
+    .eq("user_id", user.id)
     .maybeSingle();
   if (error || !data) return null;
 

@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -105,6 +106,19 @@ export const STEP_LABELS: Record<StepKey, string> = {
 
 const STORAGE_KEY = "gotogether:create-trip-draft";
 
+// The stored draft records which signed-in account it belongs to. Without
+// this, resuming a draft after switching accounts in the same tab (log out
+// of a company account, sign in as a personal one, land back on Create
+// Trip with a stale sessionStorage draft) silently carries over
+// kind: "verified_partner" / companyId from the PREVIOUS account — the new
+// account then walks through the whole Partner flow with a company_id it
+// has no real membership in, only failing at the final publish step with a
+// confusing RLS error (see the Aug 28 investigation). Discarding a draft
+// that belongs to a different account closes that hole at the source,
+// alongside the server-side re-validation in lib/real-trips.ts/
+// real-company.ts (belt-and-suspenders — the server-side check is the one
+// that actually protects the database either way).
+
 type CreateTripContextValue = {
   fields: CreateTripFields;
   update: (patch: Partial<CreateTripFields>) => void;
@@ -120,20 +134,21 @@ type CreateTripContextValue = {
 
 const CreateTripContext = createContext<CreateTripContextValue | null>(null);
 
-function loadDraft(): { fields: CreateTripFields; furthestStepIndex: number } {
+function loadDraft(): { fields: CreateTripFields; furthestStepIndex: number; ownerId: string | null } {
   if (typeof window === "undefined") {
-    return { fields: EMPTY_FIELDS, furthestStepIndex: 0 };
+    return { fields: EMPTY_FIELDS, furthestStepIndex: 0, ownerId: null };
   }
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { fields: EMPTY_FIELDS, furthestStepIndex: 0 };
+    if (!raw) return { fields: EMPTY_FIELDS, furthestStepIndex: 0, ownerId: null };
     const parsed = JSON.parse(raw);
     return {
       fields: { ...EMPTY_FIELDS, ...parsed.fields },
       furthestStepIndex: parsed.furthestStepIndex ?? 0,
+      ownerId: parsed.ownerId ?? null,
     };
   } catch {
-    return { fields: EMPTY_FIELDS, furthestStepIndex: 0 };
+    return { fields: EMPTY_FIELDS, furthestStepIndex: 0, ownerId: null };
   }
 }
 
@@ -143,27 +158,53 @@ export function CreateTripProvider({ children }: { children: ReactNode }) {
   // behind an auth check that itself only resolves in the browser), so
   // there's no SSR markup to mismatch against here.
   const { user } = useAuth();
-  const [fields, setFields] = useState<CreateTripFields>(() => loadDraft().fields);
-  const [furthestStepIndex, setFurthestStepIndex] = useState<number>(() => loadDraft().furthestStepIndex);
+  const initialDraft = useState(() => loadDraft())[0];
+  const [fields, setFields] = useState<CreateTripFields>(initialDraft.fields);
+  const [furthestStepIndex, setFurthestStepIndex] = useState<number>(initialDraft.furthestStepIndex);
   const [published, setPublished] = useState(false);
   const [publishedTripId, setPublishedTripId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
-  const persist = useCallback((nextFields: CreateTripFields, nextFurthest: number) => {
-    if (typeof window === "undefined") return;
-    try {
-      window.sessionStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ fields: nextFields, furthestStepIndex: nextFurthest })
-      );
-    } catch {
-      // Storage unavailable (private browsing, quota) — the flow still
-      // works in-memory for the current page load, matching the
-      // blueprint's own "never blocks the flow" spirit for non-critical
-      // persistence failures.
+  const persist = useCallback(
+    (nextFields: CreateTripFields, nextFurthest: number) => {
+      if (typeof window === "undefined") return;
+      try {
+        window.sessionStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ fields: nextFields, furthestStepIndex: nextFurthest, ownerId: user?.id ?? null })
+        );
+      } catch {
+        // Storage unavailable (private browsing, quota) — the flow still
+        // works in-memory for the current page load, matching the
+        // blueprint's own "never blocks the flow" spirit for non-critical
+        // persistence failures.
+      }
+    },
+    [user]
+  );
+
+  // Auth resolves asynchronously (see auth-context.tsx), so the very first
+  // render can't yet know whose account this is — loadDraft() runs before
+  // that. Once `user` settles, discard a resumed draft that belongs to a
+  // DIFFERENT account (or reconcile a legitimately-ownerless very first
+  // draft) rather than silently letting stale kind/companyId fields ride
+  // along under a new identity.
+  useEffect(() => {
+    if (!user) return;
+    if (initialDraft.ownerId && initialDraft.ownerId !== user.id) {
+      setFields(EMPTY_FIELDS);
+      setFurthestStepIndex(0);
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
     }
-  }, []);
+    // Only needs to run once, right after the account is known — not on
+    // every fields/furthestStepIndex change, which would fight `update`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const update = useCallback(
     (patch: Partial<CreateTripFields>) => {
