@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getCompanies, getAllUsersForPicker, type AdminCompanyListItem } from "@/lib/admin/data";
-import { verifyCompany, suspendCompany, removeCompany, createCompany, writeReview, addCompanyTripRecord } from "@/lib/admin/mutations";
+import { verifyCompany, suspendCompany, removeCompany, createCompany, writeReview, addCompanyTripRecord, updateCompany } from "@/lib/admin/mutations";
 import { Pill, TableSkeleton, EmptyState, ErrorRetry, ConfirmDialog, AdminButton, useLiveAnnouncer } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth-context";
 import { can } from "@/lib/admin/guard";
@@ -17,6 +17,7 @@ export function CompaniesClient() {
   const [createOpen, setCreateOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
   const [tripRecordTarget, setTripRecordTarget] = useState<{ id: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<AdminCompanyListItem | null>(null);
   const { announce, region } = useLiveAnnouncer();
 
   const load = useCallback(() => {
@@ -97,6 +98,9 @@ export function CompaniesClient() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
+                      {can(user, "company.decide") && (
+                        <AdminButton onClick={() => setEditTarget(c)}>Edit</AdminButton>
+                      )}
                       {can(user, "company.decide") && (
                         <AdminButton onClick={() => setReviewTarget({ id: c.id, name: c.name })}>Add review</AdminButton>
                       )}
@@ -191,6 +195,118 @@ export function CompaniesClient() {
           }}
         />
       )}
+
+      {editTarget && (
+        <EditCompanyDialog
+          company={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => {
+            setEditTarget(null);
+            announce("Company updated.");
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Admin "edit company" dialog — the first (and so far only) place an admin
+ * can update a company's own details after creation, including the
+ * counsellor phone number that powers the "Talk to our counsellor" button
+ * on that company's partner trips (migration 052). Per the user's chosen
+ * answer, admin sets this number directly; there's no self-serve company
+ * flow for it. */
+function EditCompanyDialog({
+  company,
+  onClose,
+  onSaved,
+}: {
+  company: AdminCompanyListItem;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(company.name ?? "");
+  const [contactEmail, setContactEmail] = useState(company.contact_email ?? "");
+  const [registrationNumber, setRegistrationNumber] = useState(company.registration_number ?? "");
+  const [gstNumber, setGstNumber] = useState(company.gst_number ?? "");
+  const [counsellorPhone, setCounsellorPhone] = useState(company.counsellor_phone ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError("Company name is required.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await updateCompany({
+        companyId: company.id,
+        name: name.trim(),
+        contactEmail: contactEmail.trim() || undefined,
+        registrationNumber: registrationNumber.trim() || undefined,
+        gstNumber: gstNumber.trim() || undefined,
+        counsellorPhone: counsellorPhone.trim() || null,
+        clearCounsellorPhone: !counsellorPhone.trim(),
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update company.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <form onSubmit={submit} className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
+        <h2 className="mb-1 text-[16px] font-bold">Edit company</h2>
+        <p className="mb-4 text-[12px] text-[oklch(50%_0.01_255)]">
+          Updates {company.name}&apos;s details. Set a counsellor phone number to show a &quot;Talk to our
+          counsellor&quot; call button on this company&apos;s partner trips.
+        </p>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Company name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
+        </div>
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Contact email</label>
+          <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
+        </div>
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Registration number</label>
+          <input value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
+        </div>
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">GST number</label>
+          <input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
+        </div>
+        <div className="mb-4">
+          <label className="mb-1 block text-[11.5px] font-semibold">Counsellor phone</label>
+          <input
+            value={counsellorPhone}
+            onChange={(e) => setCounsellorPhone(e.target.value)}
+            placeholder="e.g. +91 98765 43210"
+            className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+          />
+          <p className="mt-1 text-[10.5px] text-[oklch(55%_0.01_255)]">
+            Leave blank to hide the &quot;Talk to our counsellor&quot; button on this company&apos;s trips.
+          </p>
+        </div>
+        {error && <p className="mb-3 text-[12px] text-[oklch(45%_0.16_25)]">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <AdminButton variant="ghost" onClick={onClose} disabled={submitting}>
+            Cancel
+          </AdminButton>
+          <AdminButton variant="primary" type="submit" loading={submitting}>
+            Save
+          </AdminButton>
+        </div>
+      </form>
     </div>
   );
 }

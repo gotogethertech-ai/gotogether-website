@@ -1,8 +1,39 @@
 import { createClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import type { TripChat, ChatMessage } from "@/lib/chat-data";
+import type { ChatMessage } from "@/lib/chat-data";
 import { formatTripTiming } from "@/lib/trip-dates";
+
+export type { ChatMessage };
+
+/** A trip group chat, keyed by both tripId (for "View Trip" links) and
+ * roomId (the actual chat_rooms.id, needed since ChatListClient now keys
+ * the active conversation — group or direct — uniformly by roomId). */
+export type TripChat = {
+  tripId: string;
+  roomId: string;
+  title: string;
+  subtitle: string; // "Dec 20–24 · 5 members"
+  lastMessage: string;
+  time: string;
+  unread: number;
+  badge: string; // member count, or "VP" for a Verified Partner chat
+  badgeVariant: "default" | "partner";
+  messages: ChatMessage[];
+};
+
+/** A direct (non-trip) chat room — currently only ever a user<->company
+ * conversation started via get_or_create_company_chat (migration 052).
+ * Kept separate from TripChat (which is keyed by tripId, not roomId) since
+ * a direct room has no trip to key off. */
+export type DirectChat = {
+  roomId: string;
+  companyId: string;
+  companyName: string;
+  companyLogoInitial: string;
+  lastMessage: string;
+  time: string;
+};
 
 /**
  * Real trip group chat, replacing lib/chat-data.ts's hardcoded
@@ -99,6 +130,7 @@ export async function getMyTripChats(userId: string): Promise<TripChat[]> {
 
     results.push({
       tripId: room.trip_id,
+      roomId: room.id,
       title: trip.title,
       subtitle: `${dates} · ${count} member${count === 1 ? "" : "s"}`,
       lastMessage: lastMessagePreview,
@@ -117,6 +149,87 @@ async function resolveSenderName(supabase: SupaClient, senderId: string, viewerI
   if (senderId === viewerId) return null;
   const { data } = await supabase.from("users").select("name").eq("id", senderId).maybeSingle();
   return data?.name ?? null;
+}
+
+function logoInitialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** One row per direct chat this user has with a company (started via
+ * get_or_create_company_chat, migration 052) — every direct room today is
+ * a user<->company conversation, since nothing else creates one. Ordered
+ * by most recent message first. */
+export async function getMyDirectChats(userId: string): Promise<DirectChat[]> {
+  const supabase = createClient();
+
+  const { data: participantRows } = await supabase
+    .from("chat_participants")
+    .select("room_id")
+    .eq("user_id", userId);
+  const roomIds = (participantRows ?? []).map((r) => r.room_id);
+  if (roomIds.length === 0) return [];
+
+  const { data: rooms } = await supabase
+    .from("chat_rooms")
+    .select("id")
+    .in("id", roomIds)
+    .eq("is_direct", true);
+  const directRoomIds = (rooms ?? []).map((r) => r.id);
+  if (directRoomIds.length === 0) return [];
+
+  const { data: otherParticipants } = await supabase
+    .from("chat_participants")
+    .select("room_id, user_id")
+    .in("room_id", directRoomIds)
+    .neq("user_id", userId);
+  const otherUserIdByRoom = new Map((otherParticipants ?? []).map((p) => [p.room_id, p.user_id]));
+  const otherUserIds = Array.from(new Set(otherUserIdByRoom.values()));
+  if (otherUserIds.length === 0) return [];
+
+  const { data: companyLinks } = await supabase
+    .from("company_users")
+    .select("user_id, companies(id, name)")
+    .in("user_id", otherUserIds);
+  const companyByUserId = new Map(
+    (companyLinks ?? []).map((c) => {
+      const company = Array.isArray(c.companies) ? c.companies[0] : c.companies;
+      return [c.user_id, company] as const;
+    })
+  );
+
+  const results: DirectChat[] = [];
+  for (const roomId of directRoomIds) {
+    const otherUserId = otherUserIdByRoom.get(roomId);
+    const company = otherUserId ? companyByUserId.get(otherUserId) : null;
+    if (!company) continue; // not a company chat — nothing else creates a direct room today
+
+    const { data: lastMsgRows } = await supabase
+      .from("messages")
+      .select("id, body, sender_id, created_at")
+      .eq("room_id", roomId)
+      .order("seq", { ascending: false })
+      .limit(1);
+    const lastMsg = lastMsgRows?.[0];
+    let lastMessagePreview = "No messages yet";
+    if (lastMsg) {
+      const senderName = await resolveSenderName(supabase, lastMsg.sender_id, userId);
+      lastMessagePreview = senderName ? `${senderName}: ${lastMsg.body}` : lastMsg.body;
+    }
+
+    results.push({
+      roomId,
+      companyId: company.id,
+      companyName: company.name,
+      companyLogoInitial: logoInitialsFrom(company.name),
+      lastMessage: lastMessagePreview,
+      time: lastMsg ? formatRelativeTime(lastMsg.created_at) : "",
+    });
+  }
+
+  return results;
 }
 
 /** The chat_rooms.id for a trip, needed to subscribe/insert since

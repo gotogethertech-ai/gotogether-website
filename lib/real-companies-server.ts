@@ -35,7 +35,7 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
   const supabase = await createServerSupabaseClient();
   const { data: companies } = await supabase
     .from("companies")
-    .select("id, name, contact_email, status, created_at")
+    .select("id, name, contact_email, counsellor_phone, status, created_at")
     .eq("status", "verified");
   if (!companies) return null;
 
@@ -73,6 +73,7 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
     rating,
     reviewCount: allRatings.length,
     supportEmail: match.contact_email,
+    counsellorPhone: match.counsellor_phone,
     verifiedSince: MONTH_YEAR.format(new Date(match.created_at)),
   };
 }

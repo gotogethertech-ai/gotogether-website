@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import type { OrganizerInfo } from "@/lib/trip-details";
+import { slugify } from "@/lib/real-companies";
 
 function initialsFrom(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -50,7 +51,11 @@ export function OrganizerCard({ organizer }: { organizer: OrganizerInfo }) {
         </div>
       </div>
       <Link
-        href={`/profile/${encodeURIComponent(organizer.id ?? organizer.name)}`}
+        href={
+          organizer.kind === "company"
+            ? `/travel-companies/${encodeURIComponent(slugify(organizer.name))}`
+            : `/profile/${encodeURIComponent(organizer.id ?? organizer.name)}`
+        }
         className="text-sm font-semibold whitespace-nowrap text-text-secondary hover:text-primary"
       >
         View Profile

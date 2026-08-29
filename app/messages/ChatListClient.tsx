@@ -2,36 +2,46 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/lib/auth-context";
-import type { TripChat, ChatMessage } from "@/lib/chat-data";
+import type { TripChat, DirectChat, ChatMessage } from "@/lib/real-chat";
 import {
   getMyTripChats,
+  getMyDirectChats,
   getRoomIdForTrip,
   getRoomMessages,
   sendMessage,
   subscribeToRoomMessages,
   getSenderName,
 } from "@/lib/real-chat";
+import { slugify } from "@/lib/real-companies";
 
 /**
- * Trip Chats — two-pane layout per "GoTogether Chat List Page.dc.html":
- * conversation list (trip group chats) + active thread. Now backed by
- * real chat_rooms/chat_participants/messages tables (see
- * lib/real-chat.ts and migration 013) instead of lib/chat-data.ts's
- * hardcoded Manali/Rishikesh/Spiti/Goa sample conversations — every
- * accepted trip member gets a real, working group chat automatically.
+ * Messages — two-pane layout: conversation list (trip group chats +
+ * direct company chats) + active thread. Group chats come from real
+ * chat_rooms/chat_participants/messages tables (migration 013); direct
+ * chats are user<->company conversations started via
+ * get_or_create_company_chat (migration 052, "Message [Company]" on a
+ * partner trip's page) — both are ordinary chat_rooms rows, so the same
+ * message-loading/send/subscribe plumbing (lib/real-chat.ts) works for
+ * either kind. Everything below is keyed by roomId, not tripId, since a
+ * direct chat has no trip.
  *
- * Direct messages aren't provisioned by any UI yet (no "message this
- * person" entry point exists), so that section is simply omitted rather
- * than showing a fake contact.
+ * `?room=<id>` deep-links straight into a specific conversation (used by
+ * the "Message company" button on a partner trip page) — resolved against
+ * whichever list (group or direct) actually contains that room once both
+ * have loaded.
  */
 export function ChatListClient() {
   const { user, isLoggedIn, requireAuth } = useAuth();
+  const searchParams = useSearchParams();
+  const deepLinkRoomId = searchParams.get("room");
+
   const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
-  const [chats, setChats] = useState<TripChat[]>([]);
-  const [chatsLoaded, setChatsLoaded] = useState(false);
-  const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const [tripChats, setTripChats] = useState<TripChat[]>([]);
+  const [directChats, setDirectChats] = useState<DirectChat[]>([]);
+  const [listsLoaded, setListsLoaded] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -44,62 +54,64 @@ export function ChatListClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load both conversation lists once, then resolve which room should be
+  // active: the ?room= deep link if present and found, else the first
+  // trip group chat.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    getMyTripChats(user.id).then((list) => {
+    Promise.all([getMyTripChats(user.id), getMyDirectChats(user.id)]).then(async ([trips, directs]) => {
       if (cancelled) return;
-      setChats(list);
-      setChatsLoaded(true);
-      if (list.length > 0) setActiveTripId(list[0].tripId);
+      setTripChats(trips);
+      setDirectChats(directs);
+      setListsLoaded(true);
+
+      if (deepLinkRoomId) {
+        setActiveRoomId(deepLinkRoomId);
+        return;
+      }
+      if (trips.length > 0) {
+        const roomId = await getRoomIdForTrip(trips[0].tripId);
+        if (!cancelled) setActiveRoomId(roomId);
+      } else if (directs.length > 0) {
+        setActiveRoomId(directs[0].roomId);
+      }
     });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Load the room + message history whenever the active trip changes, and
-  // subscribe to new messages arriving in real time via Supabase Realtime.
+  // Load message history + subscribe to realtime whenever the active room
+  // changes.
   useEffect(() => {
-    if (!activeTripId || !user) return;
+    if (!activeRoomId || !user) return;
     let cancelled = false;
+    setMessages([]);
+
     let unsubscribe: (() => void) | null = null;
-
-    Promise.resolve()
-      .then(() => {
-        if (cancelled) return;
-        setActiveRoomId(null);
-        setMessages([]);
-      })
-      .then(() => getRoomIdForTrip(activeTripId))
-      .then(async (roomId) => {
-        if (cancelled || !roomId) return;
-        setActiveRoomId(roomId);
-        const history = await getRoomMessages(roomId, user.id);
-        if (cancelled) return;
-        setMessages(history);
-
-        unsubscribe = subscribeToRoomMessages(roomId, (row) => {
-          const fromSelf = row.sender_id === user.id;
-          const append = (senderName: string | undefined) => {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === row.id)) return prev;
-              return [...prev, { id: row.id, fromSelf, senderName, text: row.body }];
-            });
-          };
-          if (fromSelf) {
-            append(undefined);
-          } else {
-            getSenderName(row.sender_id).then(append);
-          }
-        });
+    getRoomMessages(activeRoomId, user.id).then((history) => {
+      if (cancelled) return;
+      setMessages(history);
+      unsubscribe = subscribeToRoomMessages(activeRoomId, (row) => {
+        const fromSelf = row.sender_id === user.id;
+        const append = (senderName: string | undefined) => {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+            return [...prev, { id: row.id, fromSelf, senderName, text: row.body }];
+          });
+        };
+        if (fromSelf) append(undefined);
+        else getSenderName(row.sender_id).then(append);
       });
+    });
 
     return () => {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [activeTripId, user]);
+  }, [activeRoomId, user]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -114,8 +126,9 @@ export function ChatListClient() {
     );
   }
 
-  const active = chats.find((c) => c.tripId === activeTripId) ?? null;
-  const isEmpty = chatsLoaded && chats.length === 0;
+  const activeTripChat = tripChats.find((c) => c.roomId === activeRoomId) ?? null;
+  const activeDirectChat = directChats.find((c) => c.roomId === activeRoomId) ?? null;
+  const isEmpty = listsLoaded && tripChats.length === 0 && directChats.length === 0;
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -140,7 +153,7 @@ export function ChatListClient() {
     <>
       <Header activePath="/" />
       <main className="flex-1 bg-surface">
-        {!chatsLoaded ? (
+        {!listsLoaded ? (
           <div className="mx-auto max-w-[1000px] py-24" />
         ) : isEmpty ? (
           <div className="mx-auto flex max-w-[600px] flex-col items-center gap-3 px-8 py-24 text-center">
@@ -156,44 +169,79 @@ export function ChatListClient() {
             {/* Left pane — conversation list */}
             <div className="w-[340px] flex-none overflow-y-auto border-r border-border-divider">
               <div className="px-4 py-4">
-                <h1 className="font-display text-lg font-bold">Trip Chats</h1>
+                <h1 className="font-display text-lg font-bold">Messages</h1>
               </div>
 
-              <div className="px-4">
-                <div className="mb-2 text-[10.5px] font-bold tracking-wide text-text-muted uppercase">
-                  Group chats
+              {tripChats.length > 0 && (
+                <div className="mb-4 px-4">
+                  <div className="mb-2 text-[10.5px] font-bold tracking-wide text-text-muted uppercase">
+                    Group chats
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {tripChats.map((chat) => (
+                      <TripConversationRow
+                        key={chat.tripId}
+                        chat={chat}
+                        active={chat.roomId === activeRoomId}
+                        onClick={() => setActiveRoomId(chat.roomId)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  {chats.map((chat) => (
-                    <ConversationRow
-                      key={chat.tripId}
-                      chat={chat}
-                      active={chat.tripId === activeTripId}
-                      onClick={() => setActiveTripId(chat.tripId)}
-                    />
-                  ))}
+              )}
+
+              {directChats.length > 0 && (
+                <div className="px-4">
+                  <div className="mb-2 text-[10.5px] font-bold tracking-wide text-text-muted uppercase">
+                    Direct messages
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {directChats.map((chat) => (
+                      <DirectConversationRow
+                        key={chat.roomId}
+                        chat={chat}
+                        active={chat.roomId === activeRoomId}
+                        onClick={() => setActiveRoomId(chat.roomId)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right pane — active conversation */}
             <div className="flex flex-1 flex-col">
-              {active ? (
+              {activeTripChat || activeDirectChat ? (
                 <>
                   <div className="border-b border-border-divider px-5 py-3.5">
-                    <div className="text-[15px] font-bold">{active.title}</div>
+                    <div className="text-[15px] font-bold">
+                      {activeTripChat?.title ?? activeDirectChat?.companyName}
+                    </div>
                     <div className="text-[11px] text-text-muted">
-                      {active.subtitle} ·{" "}
-                      <Link href={`/trips/${active.tripId}`} className="font-semibold text-primary hover:underline">
-                        View Trip
-                      </Link>
+                      {activeTripChat ? (
+                        <>
+                          {activeTripChat.subtitle} ·{" "}
+                          <Link href={`/trips/${activeTripChat.tripId}`} className="font-semibold text-primary hover:underline">
+                            View Trip
+                          </Link>
+                        </>
+                      ) : (
+                        <Link
+                          href={`/travel-companies/${encodeURIComponent(slugify(activeDirectChat!.companyName))}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          View Company
+                        </Link>
+                      )}
                     </div>
                   </div>
 
                   <div ref={scrollRef} className="flex-1 overflow-y-auto p-5">
                     {messages.length === 0 ? (
                       <p className="text-[12.5px] text-text-tertiary">
-                        No messages yet — say hello to the group.
+                        {activeDirectChat
+                          ? `No messages yet — ask ${activeDirectChat.companyName} about this trip.`
+                          : "No messages yet — say hello to the group."}
                       </p>
                     ) : (
                       <div className="flex flex-col gap-3">
@@ -221,7 +269,7 @@ export function ChatListClient() {
                     <input
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
-                      placeholder="Message the group..."
+                      placeholder={activeDirectChat ? `Message ${activeDirectChat.companyName}...` : "Message the group..."}
                       className="flex-1 rounded-full border border-border-input bg-surface-tint px-4 py-2.5 text-[12.5px] outline-none focus:border-primary font-sans"
                     />
                     <button
@@ -247,7 +295,7 @@ export function ChatListClient() {
   );
 }
 
-function ConversationRow({
+function TripConversationRow({
   chat,
   active,
   onClick,
@@ -288,6 +336,38 @@ function ConversationRow({
             </span>
           )}
         </div>
+      </div>
+    </button>
+  );
+}
+
+function DirectConversationRow({
+  chat,
+  active,
+  onClick,
+}: {
+  chat: DirectChat;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-xl px-2 py-2.5 text-left ${active ? "bg-[oklch(94%_0.05_255)]" : "hover:bg-surface-hover"}`}
+    >
+      <div
+        className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface-avatar text-[13px] font-bold text-primary"
+        style={{ width: 44, height: 44 }}
+        aria-hidden="true"
+      >
+        {chat.companyLogoInitial}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[13px] font-bold">{chat.companyName}</span>
+          <span className="flex-none text-[10px] text-text-muted">{chat.time}</span>
+        </div>
+        <span className="block truncate text-[11.5px] text-text-muted">{chat.lastMessage}</span>
       </div>
     </button>
   );

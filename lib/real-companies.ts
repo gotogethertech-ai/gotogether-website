@@ -42,6 +42,9 @@ export type RealCompany = {
   rating: string | null; // null → no ratings at all yet
   reviewCount: number; // ratings the average above is based on
   supportEmail: string | null;
+  /** Admin-set "Talk to our counsellor" tel: number (migration 052), or
+   * null until an admin adds one — the call CTA is hidden without it. */
+  counsellorPhone: string | null;
   verifiedSince: string; // formatted month/year
 };
 
@@ -99,7 +102,7 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
   const supabase = createClient();
   const { data: companies, error } = await supabase
     .from("companies")
-    .select("id, name, contact_email, status, created_at")
+    .select("id, name, contact_email, counsellor_phone, status, created_at")
     .eq("status", "verified")
     .order("created_at", { ascending: false });
   if (error || !companies || companies.length === 0) return [];
@@ -173,6 +176,7 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
       rating,
       reviewCount: allRatings.length,
       supportEmail: c.contact_email,
+      counsellorPhone: c.counsellor_phone,
       verifiedSince: formatVerifiedSince(c.created_at),
     };
   });
@@ -201,6 +205,18 @@ export function formatRatingWithBasis(company: RealCompany): string {
 
 export function formatTripsRun(company: RealCompany): string {
   return company.tripsRun === 1 ? "1 trip completed" : `${company.tripsRun} trips completed`;
+}
+
+/** Opens (or finds the existing) direct chat_rooms row between the
+ * signed-in user and this verified company's primary account (migration
+ * 052) — works before the user has joined any of the company's trips,
+ * unlike the trip group chat which requires accepted membership. Returns
+ * the room id to navigate to on /messages. */
+export async function getOrCreateCompanyChat(companyId: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_or_create_company_chat", { p_company_id: companyId });
+  if (error || !data) throw new Error(error?.message ?? "Couldn't start a chat with this company.");
+  return data;
 }
 
 export type CompanyTripRecord = {

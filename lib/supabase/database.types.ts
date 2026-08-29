@@ -133,6 +133,7 @@ export type Database = {
       companies: {
         Row: {
           contact_email: string | null
+          counsellor_phone: string | null
           created_at: string
           gst_number: string | null
           id: string
@@ -143,6 +144,7 @@ export type Database = {
         }
         Insert: {
           contact_email?: string | null
+          counsellor_phone?: string | null
           created_at?: string
           gst_number?: string | null
           id?: string
@@ -153,6 +155,7 @@ export type Database = {
         }
         Update: {
           contact_email?: string | null
+          counsellor_phone?: string | null
           created_at?: string
           gst_number?: string | null
           id?: string
@@ -1213,6 +1216,22 @@ export type Database = {
           p_trip_id?: string
           p_trip_title_override?: string
         }
+        Returns: string
+      }
+      admin_update_company: {
+        Args: {
+          p_company_id: string
+          p_name?: string
+          p_contact_email?: string
+          p_registration_number?: string
+          p_gst_number?: string
+          p_counsellor_phone?: string
+          p_clear_counsellor_phone?: boolean
+        }
+        Returns: undefined
+      }
+      get_or_create_company_chat: {
+        Args: { p_company_id: string }
         Returns: string
       }
       admin_add_company_trip_record: {

@@ -82,6 +82,12 @@ export type TripDetail = {
   // (community) or fixed_end_date (partner) — backing the "2 spots left" /
   // "2 days left" urgency badge, see lib/trip-dates.ts's getUrgencyBadge.
   deadlineDate?: string | null;
+  // Verified Partner only — the running company's real id (migration 052's
+  // "Message company" / "Talk to our counsellor" actions need this to call
+  // get_or_create_company_chat and to read counsellor_phone). Undefined
+  // for a community trip, which has no company.
+  companyId?: string | null;
+  companyCounsellorPhone?: string | null;
 };
 
 /** The one fully-authored trip, matching "GoTogether Trip Details Page.dc.html"

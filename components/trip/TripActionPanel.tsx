@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { sendJoinRequest, leaveTrip } from "@/lib/real-trip-details";
 import type { ViewerRelationship } from "@/lib/real-trip-details";
 import { analytics } from "@/lib/analytics";
+import { getOrCreateCompanyChat } from "@/lib/real-companies";
 
 export type { ViewerRelationship };
 
@@ -37,6 +38,8 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [left, setLeft] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const cta = resolveCta({ trip, relationship, requested });
 
@@ -62,6 +65,25 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
     } finally {
       setRequesting(false);
     }
+  }
+
+  async function startCompanyChat() {
+    if (!trip.companyId) return;
+    setChatError(null);
+    setStartingChat(true);
+    try {
+      const roomId = await getOrCreateCompanyChat(trip.companyId);
+      router.push(`/messages?room=${roomId}`);
+    } catch (err) {
+      setChatError(err instanceof Error ? err.message : "Couldn't start a chat. Try again.");
+    } finally {
+      setStartingChat(false);
+    }
+  }
+
+  function handleMessageCompanyClick() {
+    if (!trip.companyId) return;
+    requireAuth("message this company", () => startCompanyChat());
   }
 
   function handleClick() {
@@ -124,6 +146,31 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
             <p className="mt-2.5 text-center text-[10.5px] text-text-muted">
               {cta.helperText}
             </p>
+          )}
+          {trip.kind === "partner" && trip.companyId && (
+            <div className="mt-3 flex flex-col gap-2 border-t border-border-divider pt-3">
+              <button
+                type="button"
+                onClick={handleMessageCompanyClick}
+                disabled={startingChat}
+                className="w-full rounded-full border border-border-input py-2.5 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-hover disabled:opacity-60"
+              >
+                {startingChat ? "Opening chat…" : `Message ${trip.organizer.name}`}
+              </button>
+              {trip.companyCounsellorPhone && (
+                <a
+                  href={`tel:${trip.companyCounsellorPhone}`}
+                  className="w-full rounded-full border border-border-input py-2.5 text-center text-[12.5px] font-semibold text-text-secondary hover:bg-surface-hover"
+                >
+                  📞 Talk to our counsellor
+                </a>
+              )}
+              {chatError && (
+                <p role="alert" className="text-center text-[10.5px] font-medium text-danger">
+                  {chatError}
+                </p>
+              )}
+            </div>
           )}
           {relationship === "member" && (
             <button

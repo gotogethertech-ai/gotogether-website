@@ -33,7 +33,7 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
   const { data: trip, error } = await supabase
     .from("trips")
     .select(
-      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, price_breakdown, inclusions, exclusions, itinerary_days, itinerary_pdf_url, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url)"
+      "id, title, description, kind, status, availability_start, availability_end, duration_min, duration_max, budget_min, budget_max, fixed_start_date, fixed_end_date, price, original_price, max_group_size, min_age, max_age, gender_restriction, organizer_id, company_id, price_breakdown, inclusions, exclusions, itinerary_days, itinerary_pdf_url, destinations(name, cover_image_url), users!trips_organizer_id_fkey(name, verification_status, avatar_url), companies(name, counsellor_phone)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -62,8 +62,13 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
 
   const dest = Array.isArray(trip.destinations) ? trip.destinations[0] : trip.destinations;
   const organizer = Array.isArray(trip.users) ? trip.users[0] : trip.users;
+  const company = Array.isArray(trip.companies) ? trip.companies[0] : trip.companies;
   const joined = membersJoined ?? 0;
   const isPartner = trip.kind === "verified_partner";
+  // A partner trip can in principle exist without a company_id set (the
+  // schema allows it), so this still falls back to the individual
+  // organizer's own info rather than assuming company is present.
+  const hasCompany = isPartner && !!trip.company_id && !!company;
 
   return {
     id: trip.id,
@@ -82,16 +87,25 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
     kind: isPartner ? "partner" : "community",
     status: mapStatus(trip.status, joined, trip.max_group_size),
     imgSrc: dest?.cover_image_url ?? "/placeholders/manali.svg",
-    organizer: {
-      kind: "individual",
-      id: trip.organizer_id,
-      name: organizer?.name ?? "Trip Organizer",
-      avatarUrl: organizer?.avatar_url ?? null,
-      tripsHosted: 1,
-      responseTime: "Usually responds within a day",
-      trustScore: trustRow ? Number(trustRow.score).toFixed(1) : "5.0",
-      verified: organizer?.verification_status === "id_verified",
-    },
+    organizer: hasCompany
+      ? {
+          kind: "company",
+          id: trip.company_id ?? undefined,
+          name: company?.name ?? "Travel Company",
+          tripsHosted: 1,
+          responseTime: "Usually responds within a day",
+          verified: true,
+        }
+      : {
+          kind: "individual",
+          id: trip.organizer_id,
+          name: organizer?.name ?? "Trip Organizer",
+          avatarUrl: organizer?.avatar_url ?? null,
+          tripsHosted: 1,
+          responseTime: "Usually responds within a day",
+          trustScore: trustRow ? Number(trustRow.score).toFixed(1) : "5.0",
+          verified: organizer?.verification_status === "id_verified",
+        },
     membersJoined: joined,
     membersMax: trip.max_group_size,
     members: (memberRows ?? []).map((m) => {
@@ -103,6 +117,8 @@ export async function fetchTripDetail(supabase: SupaClient, id: string): Promise
     maxAge: trip.max_age,
     genderRestriction: trip.gender_restriction,
     deadlineDate: isPartner ? trip.fixed_end_date : trip.availability_end,
+    companyId: hasCompany ? trip.company_id : undefined,
+    companyCounsellorPhone: hasCompany ? company?.counsellor_phone ?? null : undefined,
     ...(isPartner
       ? {
           priceBreakdown: Array.isArray(trip.price_breakdown)

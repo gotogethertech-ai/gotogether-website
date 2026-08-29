@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ChatListClient } from "./ChatListClient";
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function MessagesPage() {
-  return <ChatListClient />;
+  return (
+    <Suspense fallback={null}>
+      <ChatListClient />
+    </Suspense>
+  );
 }

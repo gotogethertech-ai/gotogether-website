@@ -175,6 +175,29 @@ export async function writeReview(input: {
 export const editReview = (reviewId: string, patch: { rating?: number; comment?: string }) =>
   callRpc("admin_edit_review", { p_review_id: reviewId, p_rating: patch.rating, p_comment: patch.comment });
 
+/** First "edit company" mutation (previously only create/verify/suspend/
+ * remove existed) — currently used for the counsellor phone number
+ * (migration 052) but covers the other editable fields too. */
+export async function updateCompany(input: {
+  companyId: string;
+  name?: string;
+  contactEmail?: string;
+  registrationNumber?: string;
+  gstNumber?: string;
+  counsellorPhone?: string | null;
+  clearCounsellorPhone?: boolean;
+}): Promise<void> {
+  await callRpc("admin_update_company", {
+    p_company_id: input.companyId,
+    p_name: input.name,
+    p_contact_email: input.contactEmail,
+    p_registration_number: input.registrationNumber,
+    p_gst_number: input.gstNumber,
+    p_counsellor_phone: input.counsellorPhone ?? undefined,
+    p_clear_counsellor_phone: input.clearCounsellorPhone,
+  });
+}
+
 /** Admin-authored "trip run by this company" display record (migration
  * 051) — name + date range shown on the company's public profile,
  * non-clickable (no backing trips row, no booking/members). Counts toward
