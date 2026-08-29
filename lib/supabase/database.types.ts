@@ -777,6 +777,7 @@ export type Database = {
           account_status: Database["public"]["Enums"]["account_status"]
           avatar_url: string | null
           bio: string | null
+          cities_explored_override: number | null
           created_at: string
           date_of_birth: string | null
           deleted_at: string | null
@@ -791,6 +792,9 @@ export type Database = {
           restricted_until: string | null
           role: Database["public"]["Enums"]["user_role"]
           smoking_preference: string | null
+          trips_completed_override: number | null
+          trips_joined_override: number | null
+          trips_organized_override: number | null
           updated_at: string
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
@@ -798,6 +802,7 @@ export type Database = {
           account_status?: Database["public"]["Enums"]["account_status"]
           avatar_url?: string | null
           bio?: string | null
+          cities_explored_override?: number | null
           created_at?: string
           date_of_birth?: string | null
           deleted_at?: string | null
@@ -812,6 +817,9 @@ export type Database = {
           restricted_until?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           smoking_preference?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
           updated_at?: string
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -819,6 +827,7 @@ export type Database = {
           account_status?: Database["public"]["Enums"]["account_status"]
           avatar_url?: string | null
           bio?: string | null
+          cities_explored_override?: number | null
           created_at?: string
           date_of_birth?: string | null
           deleted_at?: string | null
@@ -833,6 +842,9 @@ export type Database = {
           restricted_until?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           smoking_preference?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
           updated_at?: string
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -1102,6 +1114,11 @@ export type Database = {
         Args: {
           p_avatar_url?: string
           p_bio?: string
+          p_cities_explored_override?: number
+          p_clear_cities_explored_override?: boolean
+          p_clear_trips_completed_override?: boolean
+          p_clear_trips_joined_override?: boolean
+          p_clear_trips_organized_override?: boolean
           p_date_of_birth?: string
           p_drinking_preference?: string
           p_email?: string
@@ -1109,6 +1126,9 @@ export type Database = {
           p_name?: string
           p_phone?: string
           p_smoking_preference?: string
+          p_trips_completed_override?: number
+          p_trips_joined_override?: number
+          p_trips_organized_override?: number
           p_user_id: string
         }
         Returns: undefined

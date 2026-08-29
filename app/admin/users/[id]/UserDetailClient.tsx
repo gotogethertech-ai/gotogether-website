@@ -523,6 +523,10 @@ function EditProfileDialog({
   const [email, setEmail] = useState(detail.email ?? "");
   const [smokingPreference, setSmokingPreference] = useState(detail.smoking_preference ?? "");
   const [drinkingPreference, setDrinkingPreference] = useState(detail.drinking_preference ?? "");
+  const [tripsJoined, setTripsJoined] = useState(detail.trips_joined_override != null ? String(detail.trips_joined_override) : "");
+  const [tripsCompleted, setTripsCompleted] = useState(detail.trips_completed_override != null ? String(detail.trips_completed_override) : "");
+  const [tripsOrganized, setTripsOrganized] = useState(detail.trips_organized_override != null ? String(detail.trips_organized_override) : "");
+  const [citiesExplored, setCitiesExplored] = useState(detail.cities_explored_override != null ? String(detail.cities_explored_override) : "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -544,6 +548,14 @@ function EditProfileDialog({
         email,
         smokingPreference,
         drinkingPreference,
+        tripsJoinedOverride: tripsJoined === "" ? null : Number(tripsJoined),
+        clearTripsJoinedOverride: tripsJoined === "",
+        tripsCompletedOverride: tripsCompleted === "" ? null : Number(tripsCompleted),
+        clearTripsCompletedOverride: tripsCompleted === "",
+        tripsOrganizedOverride: tripsOrganized === "" ? null : Number(tripsOrganized),
+        clearTripsOrganizedOverride: tripsOrganized === "",
+        citiesExploredOverride: citiesExplored === "" ? null : Number(citiesExplored),
+        clearCitiesExploredOverride: citiesExplored === "",
       });
       onSaved();
     } catch (err) {
@@ -594,6 +606,59 @@ function EditProfileDialog({
           <div>
             <label className="mb-1 block text-[11.5px] font-semibold">Drinking preference</label>
             <input value={drinkingPreference} onChange={(e) => setDrinkingPreference(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-lg border border-[oklch(85%_0.005_255)] p-3">
+          <p className="mb-1 text-[11.5px] font-semibold">Travel activity (shown on profile)</p>
+          <p className="mb-2.5 text-[11px] text-[oklch(55%_0.01_255)]">
+            Manually set numbers — not computed from real trip history yet. Leave blank to show 0.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-[oklch(45%_0.01_255)]">Trips joined</label>
+              <input
+                type="number"
+                min={0}
+                value={tripsJoined}
+                onChange={(e) => setTripsJoined(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-[oklch(45%_0.01_255)]">Trips completed</label>
+              <input
+                type="number"
+                min={0}
+                value={tripsCompleted}
+                onChange={(e) => setTripsCompleted(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-[oklch(45%_0.01_255)]">Trips organized</label>
+              <input
+                type="number"
+                min={0}
+                value={tripsOrganized}
+                onChange={(e) => setTripsOrganized(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-[oklch(45%_0.01_255)]">Cities explored</label>
+              <input
+                type="number"
+                min={0}
+                value={citiesExplored}
+                onChange={(e) => setCitiesExplored(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+              />
+            </div>
           </div>
         </div>
 

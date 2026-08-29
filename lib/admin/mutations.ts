@@ -93,6 +93,18 @@ export async function updateUserProfile(
     avatarUrl: string;
     smokingPreference: string;
     drinkingPreference: string;
+    // Admin-set overrides for the profile page's Travel Activity tiles
+    // (migration 041) — not real computed counts, just what staff types
+    // in. Undefined/null leaves the stored value unchanged; the matching
+    // clear* flag resets it back to null (renders as 0).
+    tripsJoinedOverride: number | null;
+    clearTripsJoinedOverride: boolean;
+    tripsCompletedOverride: number | null;
+    clearTripsCompletedOverride: boolean;
+    tripsOrganizedOverride: number | null;
+    clearTripsOrganizedOverride: boolean;
+    citiesExploredOverride: number | null;
+    clearCitiesExploredOverride: boolean;
   }>
 ): Promise<void> {
   await callRpc("admin_update_user_profile", {
@@ -106,6 +118,14 @@ export async function updateUserProfile(
     p_avatar_url: patch.avatarUrl,
     p_smoking_preference: patch.smokingPreference,
     p_drinking_preference: patch.drinkingPreference,
+    p_trips_joined_override: patch.tripsJoinedOverride ?? undefined,
+    p_clear_trips_joined_override: patch.clearTripsJoinedOverride,
+    p_trips_completed_override: patch.tripsCompletedOverride ?? undefined,
+    p_clear_trips_completed_override: patch.clearTripsCompletedOverride,
+    p_trips_organized_override: patch.tripsOrganizedOverride ?? undefined,
+    p_clear_trips_organized_override: patch.clearTripsOrganizedOverride,
+    p_cities_explored_override: patch.citiesExploredOverride ?? undefined,
+    p_clear_cities_explored_override: patch.clearCitiesExploredOverride,
   });
 }
 

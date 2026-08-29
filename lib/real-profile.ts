@@ -9,11 +9,16 @@ import type { ProfileData, Review } from "@/lib/profiles-data";
  * Honesty rule: the trips/reviews/badges/join-request system has no real
  * backend yet (public.trips, trip_members, reviews all have 0 rows in
  * production — the rest of the app still runs on lib/trip-details.ts mock
- * data). So every field this file can't back with a real row is set to an
- * honest zero/empty value rather than a fabricated number, per the
- * project's own no-fabricated-data principle (see auth-context.tsx). When
- * the trips backend is built, only the "activity" section below needs to
- * change — identity/verification/trust score already read real data.
+ * data). So every field this file can't back with a real row defaults to
+ * an honest zero/empty value rather than a fabricated number, per the
+ * project's own no-fabricated-data principle (see auth-context.tsx). The
+ * 4 Travel Activity stats are the one exception: they read
+ * users.trips_joined_override / trips_completed_override /
+ * trips_organized_override / cities_explored_override (migration 041) —
+ * explicit admin-set numbers (unset = null = still renders as 0), not a
+ * computed count. When the trips backend is built, only the "activity"
+ * section below needs to change to real computed counts —
+ * identity/verification/trust score already read real data.
  */
 
 const MONTH_YEAR = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
@@ -103,12 +108,12 @@ export async function getRealProfileById(userId: string): Promise<ProfileData | 
     verifications: verificationBadges(row.verification_status),
     trustScore: Number(trust?.score ?? 5),
     reviewCount: reviews.length,
-    tripsCompleted: 0,
+    tripsCompleted: row.trips_completed_override ?? 0,
     stats: {
-      tripsJoined: 0,
-      tripsCompleted: 0,
-      tripsOrganized: 0,
-      citiesExplored: 0,
+      tripsJoined: row.trips_joined_override ?? 0,
+      tripsCompleted: row.trips_completed_override ?? 0,
+      tripsOrganized: row.trips_organized_override ?? 0,
+      citiesExplored: row.cities_explored_override ?? 0,
       responseRate: null,
       avgReplyTime: null,
       memberSince,
