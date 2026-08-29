@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTrips, getDestinations, getAllUsersForPicker, getCompanies, type AdminTripListItem, type TripsFilter, type AdminDestinationRow, type AdminCompanyListItem } from "@/lib/admin/data";
-import { adminCreateTripForOrganizer } from "@/lib/admin/mutations";
-import { Pill, TableSkeleton, EmptyState, ErrorRetry, AdminButton, useLiveAnnouncer } from "@/components/admin/ui";
+import { adminCreateTripForOrganizer, bulkDeleteTrips, bulkHideTrips } from "@/lib/admin/mutations";
+import { Pill, TableSkeleton, EmptyState, ErrorRetry, AdminButton, ConfirmDialog, useLiveAnnouncer } from "@/components/admin/ui";
 import { useAuth, MINIMUM_AGE } from "@/lib/auth-context";
 import { can } from "@/lib/admin/guard";
 import { RangeSlider } from "@/components/ui/RangeSlider";
@@ -44,6 +44,9 @@ export function TripsListClient() {
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<"hide" | "delete" | null>(null);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const { announce, region } = useLiveAnnouncer();
 
   useEffect(() => {
@@ -69,10 +72,53 @@ export function TripsListClient() {
   function applyFilter(patch: Partial<TripsFilter>) {
     setTrips(null);
     setOffset(0);
+    setSelected(new Set());
     setFilter((f) => ({ ...f, ...patch }));
   }
 
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      if (!trips || trips.length === 0) return prev;
+      const allSelected = trips.every((t) => prev.has(t.id));
+      return allSelected ? new Set() : new Set(trips.map((t) => t.id));
+    });
+  }
+
+  async function runBulkAction(reason: string) {
+    if (!bulkAction || selected.size === 0) return;
+    setBulkSubmitting(true);
+    try {
+      const ids = Array.from(selected);
+      if (bulkAction === "delete") {
+        await bulkDeleteTrips(ids, reason);
+        announce(`${ids.length} trip${ids.length === 1 ? "" : "s"} deleted.`);
+      } else {
+        await bulkHideTrips(ids, reason || undefined);
+        announce(`${ids.length} trip${ids.length === 1 ? "" : "s"} hidden.`);
+      }
+      setSelected(new Set());
+      setBulkAction(null);
+      setTrips(null);
+      setOffset(0);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      announce(err instanceof Error ? err.message : "Bulk action failed. Try again.");
+    } finally {
+      setBulkSubmitting(false);
+    }
+  }
+
   const hiddenCount = (trips ?? []).filter((t) => t.status === "hidden").length;
+  const allOnPageSelected = !!trips && trips.length > 0 && trips.every((t) => selected.has(t.id));
 
   return (
     <div>
@@ -103,6 +149,7 @@ export function TripsListClient() {
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
           <option value="hidden">Hidden</option>
+          <option value="deleted">Deleted</option>
         </select>
         <select onChange={(e) => applyFilter({ kind: (e.target.value || "all") as TripsFilter["kind"] })} className="rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2.5 text-[13px]">
           <option value="all">All types</option>
@@ -110,6 +157,29 @@ export function TripsListClient() {
           <option value="verified_partner">Verified Partner</option>
         </select>
       </div>
+
+      {selected.size > 0 && (can(user, "trip.hide") || can(user, "trip.delete")) && (
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-[oklch(85%_0.005_255)] bg-[oklch(98%_0.002_255)] px-4 py-2.5">
+          <span className="text-[12.5px] font-semibold text-[oklch(35%_0.01_255)]">
+            {selected.size} trip{selected.size === 1 ? "" : "s"} selected
+          </span>
+          <div className="ml-auto flex gap-2">
+            {can(user, "trip.hide") && (
+              <AdminButton variant="default" onClick={() => setBulkAction("hide")}>
+                Hide selected
+              </AdminButton>
+            )}
+            {can(user, "trip.delete") && (
+              <AdminButton variant="danger" onClick={() => setBulkAction("delete")}>
+                Delete selected
+              </AdminButton>
+            )}
+            <AdminButton variant="ghost" onClick={() => setSelected(new Set())}>
+              Clear
+            </AdminButton>
+          </div>
+        </div>
+      )}
 
       {error ? (
         <ErrorRetry message="Couldn't load trips." onRetry={() => setReloadKey((k) => k + 1)} />
@@ -124,6 +194,17 @@ export function TripsListClient() {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr className="border-b border-[oklch(92%_0.003_255)] bg-[oklch(98%_0.002_255)] text-left text-[11px] font-bold text-[oklch(50%_0.01_255)]">
+                {(can(user, "trip.hide") || can(user, "trip.delete")) && (
+                  <th scope="col" className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all trips on this page"
+                      className="h-4 w-4"
+                    />
+                  </th>
+                )}
                 <th scope="col" className="px-4 py-3">Trip</th>
                 <th scope="col" className="px-4 py-3">Organizer</th>
                 <th scope="col" className="px-4 py-3">Dates</th>
@@ -135,6 +216,17 @@ export function TripsListClient() {
             <tbody>
               {trips.map((t) => (
                 <tr key={t.id} className="border-b border-[oklch(94%_0.003_255)] last:border-0 hover:bg-[oklch(98%_0.002_255)]">
+                  {(can(user, "trip.hide") || can(user, "trip.delete")) && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(t.id)}
+                        onChange={() => toggleSelected(t.id)}
+                        aria-label={`Select ${t.title}`}
+                        className="h-4 w-4"
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <Link href={`/admin/trips/${t.id}`} className="font-semibold hover:text-[oklch(45%_0.14_255)]">
                       {t.title}
@@ -186,6 +278,28 @@ export function TripsListClient() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={bulkAction === "delete"}
+        title={`Delete ${selected.size} trip${selected.size === 1 ? "" : "s"}?`}
+        consequence="Removes these trips from every browse surface and notifies any joined members. This can be undone by support if needed, but travellers will be told the trip is gone — this isn't a light action."
+        requireReason
+        confirmLabel="Delete trips"
+        danger
+        onConfirm={runBulkAction}
+        onCancel={() => !bulkSubmitting && setBulkAction(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkAction === "hide"}
+        title={`Hide ${selected.size} trip${selected.size === 1 ? "" : "s"}?`}
+        consequence="Removes these trips from public browse surfaces until unhidden. Reversible at any time."
+        requireReason={false}
+        confirmLabel="Hide trips"
+        danger={false}
+        onConfirm={runBulkAction}
+        onCancel={() => !bulkSubmitting && setBulkAction(null)}
+      />
     </div>
   );
 }

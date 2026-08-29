@@ -145,6 +145,22 @@ export const reopenTripRegistrations = (tripId: string, reason?: string) =>
 export const forceCancelTrip = (tripId: string, reason: string) =>
   callRpc("admin_force_cancel_trip", { p_trip_id: tripId, p_reason: reason });
 
+// Soft-delete, matching every other destructive admin action in this app
+// (companies, reviews, users) — never a hard DELETE FROM trips. Sets
+// status = 'deleted' (migration 040), which every browse/query-time filter
+// already excludes by construction since they allowlist ["live",
+// "in_progress"] rather than denylist hidden statuses. Admin role only
+// (same tier as force-cancel), requires a reason, audit-logged.
+export const deleteTrip = (tripId: string, reason: string) =>
+  callRpc("admin_delete_trip", { p_trip_id: tripId, p_reason: reason });
+
+// Multi-select variants for the admin trips list's checkbox bulk actions.
+export const bulkDeleteTrips = (tripIds: string[], reason: string) =>
+  callRpc("admin_bulk_delete_trips", { p_trip_ids: tripIds, p_reason: reason });
+
+export const bulkHideTrips = (tripIds: string[], reason?: string) =>
+  callRpc("admin_bulk_hide_trips", { p_trip_ids: tripIds, p_reason: reason });
+
 export const removeTripMember = (tripId: string, userId: string, reason: string) =>
   callRpc("admin_remove_trip_member", { p_trip_id: tripId, p_user_id: userId, p_reason: reason });
 

@@ -18,7 +18,7 @@ export type SupaClient = SupabaseClient<Database>;
 function mapStatus(status: Database["public"]["Enums"]["trip_status"], joined: number, max: number): TripStatus {
   if (status === "cancelled") return "cancelled";
   if (status === "completed") return "completed";
-  if (status === "hidden" || status === "draft") return "closed";
+  if (status === "hidden" || status === "draft" || status === "deleted") return "closed";
   if (max > 0 && joined >= max) return "full";
   return "open";
 }

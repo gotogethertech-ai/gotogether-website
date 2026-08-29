@@ -21,6 +21,7 @@ export type AdminCapability =
   | "trip.hide"
   | "trip.closeRegistrations"
   | "trip.forceCancel"
+  | "trip.delete"
   | "review.hideRemove"
   | "company.recommend"
   | "company.decide"
@@ -48,6 +49,7 @@ const ADMIN_CAPABILITIES: AdminCapability[] = [
   "user.suspend",
   "user.remove",
   "trip.forceCancel",
+  "trip.delete",
   "company.decide",
   "trustScore.freeze",
   "testimonial.manage",

@@ -25,6 +25,7 @@ const PILL_STYLES: Record<string, string> = {
   in_progress: "bg-[oklch(94%_0.05_230)] text-[oklch(42%_0.12_230)]",
   draft: "bg-[oklch(93%_0.005_255)] text-[oklch(45%_0.005_255)]",
   hidden: "bg-[oklch(95%_0.05_60)] text-[oklch(42%_0.12_60)]",
+  deleted: "bg-[oklch(95%_0.04_25)] text-[oklch(45%_0.16_25)]",
   completed: "bg-[oklch(93%_0.005_255)] text-[oklch(45%_0.005_255)]",
   cancelled: "bg-[oklch(95%_0.04_25)] text-[oklch(45%_0.16_25)]",
   full: "bg-[oklch(93%_0.05_150)] text-[oklch(35%_0.12_150)]",

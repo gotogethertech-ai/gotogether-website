@@ -959,6 +959,18 @@ export type Database = {
         Args: { p_destination_id: string }
         Returns: undefined
       }
+      admin_bulk_delete_trips: {
+        Args: { p_reason: string; p_trip_ids: string[] }
+        Returns: undefined
+      }
+      admin_bulk_hide_trips: {
+        Args: { p_reason?: string; p_trip_ids: string[] }
+        Returns: undefined
+      }
+      admin_delete_trip: {
+        Args: { p_reason: string; p_trip_id: string }
+        Returns: undefined
+      }
       admin_edit_review: {
         Args: { p_comment?: string; p_rating?: number; p_review_id: string }
         Returns: undefined
@@ -1193,6 +1205,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "hidden"
+        | "deleted"
       user_role: "member" | "moderator" | "admin"
       verification_decision: "pending" | "approved" | "rejected"
       verification_rejection_reason:
@@ -1362,6 +1375,7 @@ export const Constants = {
         "completed",
         "cancelled",
         "hidden",
+        "deleted",
       ],
       user_role: ["member", "moderator", "admin"],
       verification_decision: ["pending", "approved", "rejected"],
