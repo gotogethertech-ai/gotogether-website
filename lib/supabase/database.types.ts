@@ -163,6 +163,51 @@ export type Database = {
         }
         Relationships: []
       }
+      company_trip_records: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          end_date: string | null
+          id: string
+          start_date: string
+          title: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          end_date?: string | null
+          id?: string
+          start_date: string
+          title: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          id?: string
+          start_date?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_trip_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_trip_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_users: {
         Row: {
           company_id: string
@@ -1169,6 +1214,19 @@ export type Database = {
           p_trip_title_override?: string
         }
         Returns: string
+      }
+      admin_add_company_trip_record: {
+        Args: {
+          p_company_id: string
+          p_title: string
+          p_start_date: string
+          p_end_date?: string
+        }
+        Returns: string
+      }
+      admin_remove_company_trip_record: {
+        Args: { p_record_id: string }
+        Returns: undefined
       }
       can_act_as_member: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }

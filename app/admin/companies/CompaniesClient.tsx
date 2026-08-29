@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getCompanies, getAllUsersForPicker, type AdminCompanyListItem } from "@/lib/admin/data";
-import { verifyCompany, suspendCompany, removeCompany, createCompany, writeReview } from "@/lib/admin/mutations";
+import { verifyCompany, suspendCompany, removeCompany, createCompany, writeReview, addCompanyTripRecord } from "@/lib/admin/mutations";
 import { Pill, TableSkeleton, EmptyState, ErrorRetry, ConfirmDialog, AdminButton, useLiveAnnouncer } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth-context";
 import { can } from "@/lib/admin/guard";
@@ -16,6 +16,7 @@ export function CompaniesClient() {
   const [target, setTarget] = useState<{ id: string; name: string; action: Action } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
+  const [tripRecordTarget, setTripRecordTarget] = useState<{ id: string; name: string } | null>(null);
   const { announce, region } = useLiveAnnouncer();
 
   const load = useCallback(() => {
@@ -99,6 +100,9 @@ export function CompaniesClient() {
                       {can(user, "company.decide") && (
                         <AdminButton onClick={() => setReviewTarget({ id: c.id, name: c.name })}>Add review</AdminButton>
                       )}
+                      {can(user, "company.decide") && (
+                        <AdminButton onClick={() => setTripRecordTarget({ id: c.id, name: c.name })}>Add trip</AdminButton>
+                      )}
                       {c.status !== "verified" && can(user, "company.decide") && (
                         <AdminButton onClick={() => setTarget({ id: c.id, name: c.name, action: "verify" })}>Verify</AdminButton>
                       )}
@@ -170,6 +174,19 @@ export function CompaniesClient() {
           onSaved={() => {
             setReviewTarget(null);
             announce("Review added.");
+            load();
+          }}
+        />
+      )}
+
+      {tripRecordTarget && (
+        <AddCompanyTripRecordDialog
+          companyId={tripRecordTarget.id}
+          companyName={tripRecordTarget.name}
+          onClose={() => setTripRecordTarget(null)}
+          onSaved={() => {
+            setTripRecordTarget(null);
+            announce("Trip added.");
             load();
           }}
         />
@@ -396,6 +413,110 @@ function AddCompanyReviewDialog({
           </AdminButton>
           <AdminButton variant="primary" type="submit" loading={submitting}>
             Add review
+          </AdminButton>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/** Adds a display-only past-trip record (migration 051) to a company's
+ * profile — name + date range, no backing trips row. Shown non-clickable
+ * on the public company page (CompanyTripRecordCard) since there's
+ * nothing real to link to. */
+function AddCompanyTripRecordDialog({
+  companyId,
+  companyName,
+  onClose,
+  onSaved,
+}: {
+  companyId: string;
+  companyName: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) {
+      setError("Trip name is required.");
+      return;
+    }
+    if (!startDate) {
+      setError("Start date is required.");
+      return;
+    }
+    if (endDate && endDate < startDate) {
+      setError("End date can't be before the start date.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await addCompanyTripRecord({
+        companyId,
+        title: title.trim(),
+        startDate,
+        endDate: endDate || undefined,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add trip.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <form onSubmit={submit} className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
+        <h2 className="mb-1 text-[16px] font-bold">Add trip</h2>
+        <p className="mb-4 text-[12px] text-[oklch(50%_0.01_255)]">
+          Adds a past-trip record to {companyName}&apos;s profile — shown as a name and date, not clickable, and not a
+          real bookable listing.
+        </p>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Trip name</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Dharmshala by Himalayans Trails"
+            className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+          />
+        </div>
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          <div>
+            <label className="mb-1 block text-[11.5px] font-semibold">Start date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11.5px] font-semibold">End date (optional)</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+            />
+          </div>
+        </div>
+        {error && <p className="mb-3 text-[12px] text-[oklch(45%_0.16_25)]">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <AdminButton variant="ghost" onClick={onClose} disabled={submitting}>
+            Cancel
+          </AdminButton>
+          <AdminButton variant="primary" type="submit" loading={submitting}>
+            Add trip
           </AdminButton>
         </div>
       </form>

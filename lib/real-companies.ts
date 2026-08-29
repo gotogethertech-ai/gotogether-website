@@ -90,7 +90,12 @@ export function dedupeSlugs<T extends { id: string; slug: string }>(companies: T
 
 /** All verified companies, with real trip counts and a real average
  * rating computed from reviews left on that company's trips (rating is
- * null — "not enough reviews yet" — below MIN_RATING_SAMPLE). */
+ * null — "not enough reviews yet" — below MIN_RATING_SAMPLE).
+ *
+ * "Trips run" also counts admin-added company_trip_records (migration
+ * 051) — display-only past-trip entries with no backing trips row — per
+ * product decision (Aug 2026): they're a credibility record, so they
+ * should count the same as a real trip toward the number shown. */
 export async function getRealCompanies(): Promise<RealCompany[]> {
   const supabase = createClient();
   const { data: companies, error } = await supabase
@@ -102,16 +107,20 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
 
   const companyIds = companies.map((c) => c.id);
 
-  const { data: trips } = await supabase
-    .from("trips")
-    .select("id, company_id")
-    .in("company_id", companyIds);
+  const [{ data: trips }, { data: tripRecords }] = await Promise.all([
+    supabase.from("trips").select("id, company_id").in("company_id", companyIds),
+    supabase.from("company_trip_records").select("id, company_id").in("company_id", companyIds),
+  ]);
   const tripIdsByCompany = new Map<string, string[]>();
   for (const t of trips ?? []) {
     if (!t.company_id) continue;
     const list = tripIdsByCompany.get(t.company_id) ?? [];
     list.push(t.id);
     tripIdsByCompany.set(t.company_id, list);
+  }
+  const recordCountByCompany = new Map<string, number>();
+  for (const r of tripRecords ?? []) {
+    recordCountByCompany.set(r.company_id, (recordCountByCompany.get(r.company_id) ?? 0) + 1);
   }
 
   const allTripIds = (trips ?? []).map((t) => t.id);
@@ -145,7 +154,7 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
       slug: slugify(c.name),
       name: c.name,
       logoInitial: logoInitialsFrom(c.name),
-      tripsRun: tripIds.length,
+      tripsRun: tripIds.length + (recordCountByCompany.get(c.id) ?? 0),
       rating,
       supportEmail: c.contact_email,
       verifiedSince: formatVerifiedSince(c.created_at),
@@ -176,6 +185,45 @@ export function formatRatingWithBasis(company: RealCompany): string {
 
 export function formatTripsRun(company: RealCompany): string {
   return company.tripsRun === 1 ? "1 trip completed" : `${company.tripsRun} trips completed`;
+}
+
+export type CompanyTripRecord = {
+  id: string;
+  title: string;
+  dateLabel: string;
+};
+
+const RECORD_DATE = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+const RECORD_MONTH_YEAR = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
+
+function formatTripRecordDateLabel(startDate: string, endDate: string | null): string {
+  const start = new Date(startDate);
+  if (!endDate || endDate === startDate) return RECORD_DATE.format(start);
+  const end = new Date(endDate);
+  const sameMonth = start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth();
+  if (sameMonth) {
+    return `${RECORD_DATE.format(start).split(",")[0]}–${RECORD_DATE.format(end)}`;
+  }
+  return `${RECORD_MONTH_YEAR.format(start)} – ${RECORD_MONTH_YEAR.format(end)}`;
+}
+
+/** Admin-added "trip run by this company" display records (migration 051)
+ * — name + date range, no backing trips row, so callers must render these
+ * as non-clickable (there's no /trips/[id] for a record id). Separate list
+ * from getRealCompanyTrips() on purpose: these aren't ExploreTrip-shaped
+ * (no members/budget/organizer — nothing bookable exists here). */
+export async function getCompanyTripRecords(companyId: string): Promise<CompanyTripRecord[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("company_trip_records")
+    .select("id, title, start_date, end_date")
+    .eq("company_id", companyId)
+    .order("start_date", { ascending: false });
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    dateLabel: formatTripRecordDateLabel(r.start_date, r.end_date),
+  }));
 }
 
 /** Reviews written directly against a company's profile (migration 048) —

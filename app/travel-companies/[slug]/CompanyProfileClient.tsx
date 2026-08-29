@@ -12,7 +12,9 @@ import {
   formatTripsRun,
   getRealCompanyTrips,
   getRealCompanyReviews,
+  getCompanyTripRecords,
   type RealCompany,
+  type CompanyTripRecord,
 } from "@/lib/real-companies";
 import type { ExploreTrip } from "@/lib/mock-data";
 import type { Review } from "@/lib/profiles-data";
@@ -34,6 +36,7 @@ const REVIEWS_PAGE_SIZE = 5;
 
 export function CompanyProfileClient({ company }: { company: RealCompany }) {
   const [trips, setTrips] = useState<ExploreTrip[] | null>(null);
+  const [tripRecords, setTripRecords] = useState<CompanyTripRecord[] | null>(null);
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEWS_PAGE_SIZE);
 
@@ -41,6 +44,9 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
     let cancelled = false;
     getRealCompanyTrips(company.id).then((rows) => {
       if (!cancelled) setTrips(rows);
+    });
+    getCompanyTripRecords(company.id).then((rows) => {
+      if (!cancelled) setTripRecords(rows);
     });
     getRealCompanyReviews(company.id).then((rows) => {
       if (!cancelled) setReviews(rows);
@@ -104,16 +110,19 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
               )}
             </div>
 
-            {trips === null ? (
+            {trips === null || tripRecords === null ? (
               <div className="grid grid-cols-1 gap-4.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3" aria-hidden="true">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="h-[220px] animate-pulse rounded-2xl bg-surface-tint" />
                 ))}
               </div>
-            ) : visibleTrips.length > 0 ? (
+            ) : visibleTrips.length > 0 || tripRecords.length > 0 ? (
               <div className="grid grid-cols-1 gap-4.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3">
                 {visibleTrips.map((trip) => (
                   <ExploreTripCard key={trip.id} trip={trip} />
+                ))}
+                {tripRecords.map((record) => (
+                  <CompanyTripRecordCard key={record.id} record={record} />
                 ))}
               </div>
             ) : (
@@ -158,5 +167,22 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
       </main>
       <Footer />
     </>
+  );
+}
+
+/** Admin-added trip-history entry (migration 051) — deliberately NOT a
+ * link: there's no real trips row behind it, so nothing to navigate to.
+ * Rendered alongside real ExploreTripCards in the same grid, styled
+ * plainly (no image/budget/members) so it reads as a record, not a
+ * bookable listing. */
+function CompanyTripRecordCard({ record }: { record: CompanyTripRecord }) {
+  return (
+    <div className="flex h-[220px] flex-col justify-between rounded-2xl border border-border-divider bg-surface-tint p-4">
+      <div>
+        <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-text-muted">Past trip</p>
+        <h3 className="font-display text-[14px] font-bold leading-snug">{record.title}</h3>
+      </div>
+      <p className="text-[12px] text-text-tertiary">{record.dateLabel}</p>
+    </div>
   );
 }

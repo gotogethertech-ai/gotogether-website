@@ -175,6 +175,31 @@ export async function writeReview(input: {
 export const editReview = (reviewId: string, patch: { rating?: number; comment?: string }) =>
   callRpc("admin_edit_review", { p_review_id: reviewId, p_rating: patch.rating, p_comment: patch.comment });
 
+/** Admin-authored "trip run by this company" display record (migration
+ * 051) — name + date range shown on the company's public profile,
+ * non-clickable (no backing trips row, no booking/members). Counts toward
+ * the company's "trips run" stat alongside real trips — see
+ * getRealCompanies() in lib/real-companies.ts. */
+export async function addCompanyTripRecord(input: {
+  companyId: string;
+  title: string;
+  startDate: string;
+  endDate?: string;
+}): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("admin_add_company_trip_record", {
+    p_company_id: input.companyId,
+    p_title: input.title,
+    p_start_date: input.startDate,
+    p_end_date: input.endDate,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+export const removeCompanyTripRecord = (recordId: string) =>
+  callRpc("admin_remove_company_trip_record", { p_record_id: recordId });
+
 // ── Trip moderation (§6) ────────────────────────────────────────────
 export const hideTrip = (tripId: string, reason: string) => callRpc("admin_hide_trip", { p_trip_id: tripId, p_reason: reason });
 
