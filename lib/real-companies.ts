@@ -121,6 +121,10 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
       .in("trip_id", allTripIds)
       .eq("visibility", "published");
     for (const r of reviews ?? []) {
+      // trip_id can be null for an admin-authored review attributed to a
+      // free-text trip name with no backing row (migration 045) — those
+      // can't be attributed to any specific trip's rating here.
+      if (!r.trip_id) continue;
       const list = ratingsByTrip.get(r.trip_id) ?? [];
       list.push(r.rating);
       ratingsByTrip.set(r.trip_id, list);

@@ -6,11 +6,10 @@ import {
   getUserDetail,
   getUserTrips,
   getUserReviews,
-  getTrips,
+  getAllUsersForPicker,
   type AdminUserDetail,
   type AdminUserTripRow,
   type AdminUserReviewRow,
-  type AdminTripListItem,
 } from "@/lib/admin/data";
 import {
   warnUser,
@@ -351,7 +350,7 @@ function ReviewRow({
   onChanged,
   onAnnounce,
 }: {
-  review: { id: string; comment: string | null; rating: number; visibility: string; reviewerName: string };
+  review: { id: string; comment: string | null; rating: number; visibility: string; reviewerName: string; tripTitle: string };
   canEdit: boolean;
   onChanged: () => void;
   onAnnounce: (msg: string) => void;
@@ -380,7 +379,7 @@ function ReviewRow({
     <div className="rounded-2xl border border-[oklch(90%_0.005_255)] bg-white p-4">
       <div className="mb-1.5 flex items-center justify-between">
         <div className="text-[12.5px] font-semibold">
-          {review.reviewerName} · ⭐ {review.rating}
+          {review.reviewerName} · {review.tripTitle} · ⭐ {review.rating}
         </div>
         <Pill tone={review.visibility}>{review.visibility}</Pill>
       </div>
@@ -759,40 +758,48 @@ function AddReviewDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  // No restriction to this user's own completed trips anymore — admin can
-  // attribute a review to any trip on the platform. This user's own trips
-  // (any status) are offered first since they're the most likely pick;
-  // the search box below reaches every other trip.
-  const [tripQuery, setTripQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<AdminTripListItem[] | null>(null);
-  const [tripId, setTripId] = useState(trips[0]?.tripId ?? "");
-  const [tripLabel, setTripLabel] = useState(trips[0]?.title ?? "");
-  const [reviewerDisplayName, setReviewerDisplayName] = useState("");
+  // Trip is now pure free text — no real trip row is required
+  // (trip_title_override, migration 045). This user's own trips are
+  // offered as a one-click convenience only; picking one links the review
+  // to that real trip instead of storing free text.
+  const [tripId, setTripId] = useState<string | null>(null);
+  const [tripTitle, setTripTitle] = useState("");
+
+  // Reviewer likewise defaults to free text (reviewer_display_name) with
+  // no real account attached. Searching and picking a real user sets
+  // reviewerId so the name links to their profile, same as a normal peer
+  // review; typing/editing the name after picking clears that link,
+  // since the shown text no longer matches a real account.
+  const [reviewerQuery, setReviewerQuery] = useState("");
+  const [reviewerResults, setReviewerResults] = useState<{ id: string; name: string }[] | null>(null);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState("");
+
   const [rating, setRating] = useState("5");
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tripQuery.trim()) {
-      setSearchResults(null);
+    if (!reviewerQuery.trim()) {
+      setReviewerResults(null);
       return;
     }
     let cancelled = false;
     Promise.resolve()
-      .then(() => getTrips({ q: tripQuery }, 10, 0))
-      .then(({ trips: rows }) => {
-        if (!cancelled) setSearchResults(rows);
+      .then(() => getAllUsersForPicker(reviewerQuery))
+      .then((rows) => {
+        if (!cancelled) setReviewerResults(rows);
       });
     return () => {
       cancelled = true;
     };
-  }, [tripQuery]);
+  }, [reviewerQuery]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tripId) {
-      setError("Choose a trip to attribute this review to.");
+    if (!tripTitle.trim()) {
+      setError("Enter a trip name to attribute this review to.");
       return;
     }
     const r = Number(rating);
@@ -807,7 +814,15 @@ function AddReviewDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await writeReview({ revieweeId, tripId, rating: r, comment, reviewerDisplayName: reviewerDisplayName.trim() || undefined });
+      await writeReview({
+        revieweeId,
+        tripId: tripId ?? undefined,
+        tripTitleOverride: tripId ? undefined : tripTitle.trim(),
+        rating: r,
+        comment,
+        reviewerId: reviewerId ?? undefined,
+        reviewerDisplayName: reviewerName.trim() || undefined,
+      });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add review.");
@@ -825,21 +840,20 @@ function AddReviewDialog({
         </p>
 
         <div className="mb-3">
-          <label className="mb-1 block text-[11.5px] font-semibold">Trip</label>
+          <label className="mb-1 block text-[11.5px] font-semibold">Trip name</label>
           {trips.length > 0 && (
             <select
-              value={trips.some((t) => t.tripId === tripId) ? tripId : ""}
+              value=""
               onChange={(e) => {
                 const t = trips.find((x) => x.tripId === e.target.value);
                 if (t) {
                   setTripId(t.tripId);
-                  setTripLabel(t.title);
-                  setTripQuery("");
+                  setTripTitle(t.title);
                 }
               }}
               className="mb-1.5 w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
             >
-              <option value="">This user's trips…</option>
+              <option value="">Fill in from this user's trips…</option>
               {trips.map((t) => (
                 <option key={t.tripId} value={t.tripId}>
                   {t.title} ({t.status})
@@ -848,49 +862,61 @@ function AddReviewDialog({
             </select>
           )}
           <input
-            value={tripQuery}
-            onChange={(e) => setTripQuery(e.target.value)}
-            placeholder="Or search any trip by title…"
+            value={tripTitle}
+            onChange={(e) => {
+              setTripTitle(e.target.value);
+              setTripId(null); // typing after picking means it's free text again
+            }}
+            placeholder="e.g. Manali Winter Escape"
             className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
           />
-          {searchResults && (
-            <div className="mt-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-[oklch(90%_0.005_255)]">
-              {searchResults.length === 0 ? (
-                <p className="px-3 py-2 text-[11.5px] text-[oklch(55%_0.01_255)]">No trips match.</p>
+          <p className="mt-1 text-[10.5px] text-[oklch(55%_0.01_255)]">
+            {tripId ? "Linked to a real trip." : "Free text — no real trip required."}
+          </p>
+        </div>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Reviewer name</label>
+          <input
+            value={reviewerQuery}
+            onChange={(e) => setReviewerQuery(e.target.value)}
+            placeholder="Search a real GoTogether user…"
+            className="mb-1.5 w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+          />
+          {reviewerResults && (
+            <div className="mb-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-[oklch(90%_0.005_255)]">
+              {reviewerResults.length === 0 ? (
+                <p className="px-3 py-2 text-[11.5px] text-[oklch(55%_0.01_255)]">No users match.</p>
               ) : (
-                searchResults.map((t) => (
+                reviewerResults.map((u) => (
                   <button
-                    key={t.id}
+                    key={u.id}
                     type="button"
                     onClick={() => {
-                      setTripId(t.id);
-                      setTripLabel(t.title);
-                      setTripQuery("");
-                      setSearchResults(null);
+                      setReviewerId(u.id);
+                      setReviewerName(u.name);
+                      setReviewerQuery("");
+                      setReviewerResults(null);
                     }}
                     className="block w-full px-3 py-2 text-left text-[12.5px] hover:bg-[oklch(97%_0.003_255)]"
                   >
-                    {t.title}
+                    {u.name}
                   </button>
                 ))
               )}
             </div>
           )}
-          {tripId && (
-            <p className="mt-1.5 text-[11.5px] font-medium text-[oklch(40%_0.14_255)]">Selected: {tripLabel}</p>
-          )}
-        </div>
-
-        <div className="mb-3">
-          <label className="mb-1 block text-[11.5px] font-semibold">Reviewer name (optional)</label>
           <input
-            value={reviewerDisplayName}
-            onChange={(e) => setReviewerDisplayName(e.target.value)}
-            placeholder="Leave blank to show your admin account"
+            value={reviewerName}
+            onChange={(e) => {
+              setReviewerName(e.target.value);
+              setReviewerId(null); // typing after picking means it's free text again
+            }}
+            placeholder="Or type any name — leave blank to show your admin account"
             className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
           />
           <p className="mt-1 text-[10.5px] text-[oklch(55%_0.01_255)]">
-            A free-text name shown as the reviewer — not linked to a real account.
+            {reviewerId ? "Linked to a real account — clickable to their profile." : "Free text — not linked to a real account."}
           </p>
         </div>
 

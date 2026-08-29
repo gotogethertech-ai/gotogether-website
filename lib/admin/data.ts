@@ -200,7 +200,7 @@ export async function getUserTrips(userId: string): Promise<AdminUserTripRow[]> 
   return rows;
 }
 
-export type AdminUserReviewRow = AdminReviewRow & { reviewerName: string };
+export type AdminUserReviewRow = AdminReviewRow & { reviewerName: string; tripTitle: string };
 
 export async function getUserReviews(userId: string): Promise<AdminUserReviewRow[]> {
   const supabase = createClient();
@@ -212,14 +212,24 @@ export async function getUserReviews(userId: string): Promise<AdminUserReviewRow
   if (!reviews || reviews.length === 0) return [];
 
   const reviewerIds = Array.from(new Set(reviews.map((r) => r.reviewer_id)));
-  const { data: reviewers } = await supabase.from("users").select("id, name").in("id", reviewerIds);
+  const tripIds = Array.from(new Set(reviews.map((r) => r.trip_id).filter((id): id is string => !!id)));
+  const [{ data: reviewers }, { data: tripRows }] = await Promise.all([
+    supabase.from("users").select("id, name").in("id", reviewerIds),
+    tripIds.length > 0 ? supabase.from("trips").select("id, title").in("id", tripIds) : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+  ]);
   const nameById = new Map((reviewers ?? []).map((r) => [r.id, r.name]));
+  const tripTitleById = new Map((tripRows ?? []).map((t) => [t.id, t.title]));
 
-  // reviewer_display_name (migration 043) overrides the real linked
-  // account's name when an admin typed a free-text reviewer for this
-  // review — null for every normal peer review and most admin-authored
-  // ones, which keep showing the real account's name as before.
-  return reviews.map((r) => ({ ...r, reviewerName: r.reviewer_display_name ?? nameById.get(r.reviewer_id) ?? "Unknown" }));
+  // reviewer_display_name / trip_title_override (migrations 043/045)
+  // override the real linked account's name / real trip's title when an
+  // admin typed free text for either — null for every normal peer review
+  // and most admin-authored ones, which keep showing the real linked
+  // data as before.
+  return reviews.map((r) => ({
+    ...r,
+    reviewerName: r.reviewer_display_name ?? nameById.get(r.reviewer_id) ?? "Unknown",
+    tripTitle: r.trip_title_override ?? (r.trip_id ? tripTitleById.get(r.trip_id) ?? "Unknown trip" : "Unknown trip"),
+  }));
 }
 
 // ── Verification queue ───────────────────────────────────────────────

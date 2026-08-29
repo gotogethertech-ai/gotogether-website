@@ -25,6 +25,7 @@ export type Review = {
   reviewerId?: string;
   reviewerName: string;
   reviewerInitials: string;
+  rating: number;
   tripName: string;
   date: string;
   text: string;
@@ -113,6 +114,7 @@ const PROFILES: Record<string, ProfileData> = {
         id: "r1",
         reviewerName: "Kabir Rathi",
         reviewerInitials: "KR",
+        rating: 5,
         tripName: "Old Manali Cafe Hopping",
         date: "Nov 2025",
         text: "Super organized and communicative throughout — made the whole trip easy to plan around.",
@@ -166,6 +168,7 @@ const PROFILES: Record<string, ProfileData> = {
         id: "r1",
         reviewerName: "Priya Nair",
         reviewerInitials: "PN",
+        rating: 5,
         tripName: "Manali Snow Trek",
         date: "Dec 2025",
         text: "Aarav planned everything down to the last detail and kept the group updated the whole way. Would travel with him again in a heartbeat.",
@@ -175,6 +178,7 @@ const PROFILES: Record<string, ProfileData> = {
         id: "r2",
         reviewerName: "Kabir Rathi",
         reviewerInitials: "KR",
+        rating: 4,
         tripName: "Old Manali Cafe Hopping",
         date: "Nov 2025",
         text: "Friendly, easy to talk to, and made sure everyone felt included even though most of us hadn't met before.",
@@ -225,6 +229,7 @@ const PROFILES: Record<string, ProfileData> = {
         id: "r1",
         reviewerName: "Aarav Kapoor",
         reviewerInitials: "AK",
+        rating: 5,
         tripName: "Manali Snow Trek",
         date: "Dec 2025",
         text: "Great energy on the trip, always on time and easy to coordinate with.",

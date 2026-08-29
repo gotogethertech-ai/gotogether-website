@@ -268,6 +268,9 @@ function ReviewCard({ review }: { review: Review }) {
             {review.reviewerName}
           </Link>
           <span className="text-text-muted"> · {review.tripName} · {review.date}</span>
+          <div className="mt-0.5 text-[11px] font-semibold text-[oklch(70%_0.15_80)]">
+            {"⭐".repeat(Math.max(0, Math.min(5, Math.round(review.rating))))} {review.rating.toFixed(1)}
+          </div>
         </div>
       </div>
       <p className="mb-2 text-[12.5px] leading-relaxed text-text-secondary">{review.text}</p>

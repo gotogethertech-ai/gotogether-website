@@ -134,14 +134,19 @@ export const setTrustScore = (userId: string, score: number, reason?: string) =>
   callRpc("admin_set_trust_score", { p_user_id: userId, p_score: score, p_reason: reason });
 
 // ── Admin-authored / admin-edited reviews (admin-only) ────────────────
-// reviewerDisplayName (migration 043) lets admin type a free-text name for
-// the review instead of it being attributed to a real linked account —
-// reviewer_id still points at a real users row (defaults to the acting
-// admin) for referential integrity, but every read path shows
-// reviewer_display_name instead of that row's name when it's set.
+// Exactly one of tripId / tripTitleOverride must be given (migration 045):
+// tripId links to a real trip (its title is looked up normally, same as a
+// peer review); tripTitleOverride is free text with no backing trip row.
+// reviewerId links to a real account (the profile-name link works, same
+// as a peer review); reviewerDisplayName is free text shown instead of
+// that account's name — pass BOTH together to show a chosen real user's
+// name while still linking their profile, or reviewerDisplayName alone
+// (reviewerId omitted, defaults to the acting admin) when the name typed
+// doesn't match any real account.
 export async function writeReview(input: {
   revieweeId: string;
-  tripId: string;
+  tripId?: string;
+  tripTitleOverride?: string;
   rating: number;
   comment: string;
   reviewerId?: string;
@@ -151,6 +156,7 @@ export async function writeReview(input: {
   const { data, error } = await supabase.rpc("admin_write_review", {
     p_reviewee_id: input.revieweeId,
     p_trip_id: input.tripId,
+    p_trip_title_override: input.tripTitleOverride,
     p_rating: input.rating,
     p_comment: input.comment,
     p_reviewer_id: input.reviewerId,

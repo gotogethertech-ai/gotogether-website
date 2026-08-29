@@ -427,7 +427,8 @@ export type Database = {
           reviewee_id: string
           reviewer_display_name: string | null
           reviewer_id: string
-          trip_id: string
+          trip_id: string | null
+          trip_title_override: string | null
           visibility: Database["public"]["Enums"]["review_visibility"]
         }
         Insert: {
@@ -438,7 +439,8 @@ export type Database = {
           reviewee_id: string
           reviewer_display_name?: string | null
           reviewer_id: string
-          trip_id: string
+          trip_id?: string | null
+          trip_title_override?: string | null
           visibility?: Database["public"]["Enums"]["review_visibility"]
         }
         Update: {
@@ -449,7 +451,8 @@ export type Database = {
           reviewee_id?: string
           reviewer_display_name?: string | null
           reviewer_id?: string
-          trip_id?: string
+          trip_id?: string | null
+          trip_title_override?: string | null
           visibility?: Database["public"]["Enums"]["review_visibility"]
         }
         Relationships: [
@@ -1151,7 +1154,8 @@ export type Database = {
           p_reviewee_id: string
           p_reviewer_display_name?: string
           p_reviewer_id?: string
-          p_trip_id: string
+          p_trip_id?: string
+          p_trip_title_override?: string
         }
         Returns: string
       }

@@ -41,6 +41,7 @@ function shapeReviews(
         created_at: string;
         reviewer_id: string;
         reviewer_display_name?: string | null;
+        trip_title_override?: string | null;
         users: { name: string; initials: string | null } | { name: string; initials: string | null }[] | null;
         trips: { title: string } | { title: string }[] | null;
       }[]
@@ -50,16 +51,24 @@ function shapeReviews(
   return rows.map((r) => {
     const reviewer = Array.isArray(r.users) ? r.users[0] : r.users;
     const trip = Array.isArray(r.trips) ? r.trips[0] : r.trips;
-    // reviewer_display_name (migration 043) overrides the real linked
-    // account's name for an admin-authored review typed under a free-text
-    // name — null for every normal peer review.
+    // reviewer_display_name (migration 043) overrides the shown name.
+    // reviewer_id is always a real users row (NOT NULL, defaults to the
+    // acting admin when Add Review's reviewer field wasn't tied to a
+    // specific account) — so it's only safe to link the name to that
+    // account when the shown name actually IS that account's real name:
+    // either a normal peer review (no override at all), or an admin
+    // review where the typed name matches the picked account's real name
+    // exactly. Any other override means no real account backs the shown
+    // name, so the link is suppressed.
     const name = r.reviewer_display_name ?? reviewer?.name ?? "GoTogether Member";
+    const nameMatchesLinkedAccount = !r.reviewer_display_name || r.reviewer_display_name === reviewer?.name;
     return {
       id: r.id,
-      reviewerId: r.reviewer_display_name ? undefined : r.reviewer_id,
+      reviewerId: nameMatchesLinkedAccount ? r.reviewer_id : undefined,
       reviewerName: name,
       reviewerInitials: r.reviewer_display_name ? initialsFrom(name) : reviewer?.initials ?? initialsFrom(name),
-      tripName: trip?.title ?? "",
+      rating: r.rating,
+      tripName: r.trip_title_override ?? trip?.title ?? "",
       date: MONTH_YEAR.format(new Date(r.created_at)),
       text: r.comment ?? "",
       tags: [],
@@ -74,7 +83,7 @@ export async function getRealProfileByIdServer(userId: string): Promise<ProfileD
     supabase.from("trust_scores").select("score").eq("user_id", userId).maybeSingle(),
     supabase
       .from("reviews")
-      .select("id, rating, comment, created_at, reviewer_id, reviewer_display_name, users!reviews_reviewer_id_fkey(name, initials), trips(title)")
+      .select("id, rating, comment, created_at, reviewer_id, reviewer_display_name, trip_title_override, users!reviews_reviewer_id_fkey(name, initials), trips(title)")
       .eq("reviewee_id", userId)
       .eq("visibility", "published")
       .order("created_at", { ascending: false }),
