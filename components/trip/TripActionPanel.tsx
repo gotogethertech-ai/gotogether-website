@@ -210,6 +210,31 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
             <ConfirmationToast trip={trip} compact />
           </div>
         )}
+        {chatError && (
+          <p role="alert" className="mb-2 text-center text-[10.5px] font-medium text-danger">
+            {chatError}
+          </p>
+        )}
+        {trip.kind === "partner" && trip.companyId && (
+          <div className="mb-2.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleMessageCompanyClick}
+              disabled={startingChat}
+              className="flex-1 rounded-full border border-border-input py-2 text-[11.5px] font-semibold text-text-secondary hover:bg-surface-hover disabled:opacity-60"
+            >
+              {startingChat ? "Opening chat…" : "Message company"}
+            </button>
+            {trip.companyCounsellorPhone && (
+              <a
+                href={`tel:${trip.companyCounsellorPhone}`}
+                className="flex-1 rounded-full border border-border-input py-2 text-center text-[11.5px] font-semibold text-text-secondary hover:bg-surface-hover"
+              >
+                📞 Counsellor
+              </a>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-[10px] text-text-muted">
@@ -221,8 +246,10 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
           <ActionButton cta={cta} loading={requesting} onClick={handleClick} />
         </div>
       </div>
-      {/* Spacer so the fixed bottom bar never overlaps page content */}
-      <div className="h-[76px] min-[900px]:hidden" aria-hidden="true" />
+      {/* Spacer so the fixed bottom bar never overlaps page content — taller
+          on a partner trip since the company chat/counsellor row adds
+          height above the primary CTA row. */}
+      <div className={`${trip.kind === "partner" && trip.companyId ? "h-[128px]" : "h-[76px]"} min-[900px]:hidden`} aria-hidden="true" />
     </>
   );
 }
