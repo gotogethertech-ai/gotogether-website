@@ -143,8 +143,13 @@ export const setTrustScore = (userId: string, score: number, reason?: string) =>
 // name while still linking their profile, or reviewerDisplayName alone
 // (reviewerId omitted, defaults to the acting admin) when the name typed
 // doesn't match any real account.
+/** revieweeId targets a user's profile; revieweeCompanyId targets a
+ * travel company's profile (migration 048) — pass exactly one, never
+ * both. Everything else (free-text trip/reviewer, rating, comment) works
+ * identically for either target. */
 export async function writeReview(input: {
-  revieweeId: string;
+  revieweeId?: string;
+  revieweeCompanyId?: string;
   tripId?: string;
   tripTitleOverride?: string;
   rating: number;
@@ -155,6 +160,7 @@ export async function writeReview(input: {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("admin_write_review", {
     p_reviewee_id: input.revieweeId,
+    p_reviewee_company_id: input.revieweeCompanyId,
     p_trip_id: input.tripId,
     p_trip_title_override: input.tripTitleOverride,
     p_rating: input.rating,

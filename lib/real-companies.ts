@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ExploreTrip } from "@/lib/mock-data";
 import { formatTripListingDates, formatTripListingBudget } from "@/lib/trip-dates";
+import type { Review } from "@/lib/profiles-data";
+import { shapeReviews } from "@/lib/real-profile";
 
 /**
  * Real Verified Travel Companies directory — replaces the previous
@@ -174,6 +176,24 @@ export function formatRatingWithBasis(company: RealCompany): string {
 
 export function formatTripsRun(company: RealCompany): string {
   return company.tripsRun === 1 ? "1 trip completed" : `${company.tripsRun} trips completed`;
+}
+
+/** Reviews written directly against a company's profile (migration 048) —
+ * distinct from the trip-level reviews getRealCompanies() averages into
+ * the header rating. Admin-authored via the Add Review flow on the admin
+ * Companies page; reuses the same shapeReviews() as user profiles so the
+ * free-text trip/reviewer-name override rules stay identical. */
+export async function getRealCompanyReviews(companyId: string): Promise<Review[]> {
+  const supabase = createClient();
+  const { data: rows } = await supabase
+    .from("reviews")
+    .select(
+      "id, rating, comment, created_at, reviewer_id, reviewer_display_name, trip_title_override, users!reviews_reviewer_id_fkey(name, initials), trips(title)"
+    )
+    .eq("reviewee_company_id", companyId)
+    .eq("visibility", "published")
+    .order("created_at", { ascending: false });
+  return shapeReviews(rows);
 }
 
 /** Live/in-progress trips organized under this company, shaped as

@@ -424,7 +424,8 @@ export type Database = {
           created_at: string
           id: string
           rating: number
-          reviewee_id: string
+          reviewee_id: string | null
+          reviewee_company_id: string | null
           reviewer_display_name: string | null
           reviewer_id: string
           trip_id: string | null
@@ -436,7 +437,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating: number
-          reviewee_id: string
+          reviewee_id?: string | null
+          reviewee_company_id?: string | null
           reviewer_display_name?: string | null
           reviewer_id: string
           trip_id?: string | null
@@ -448,7 +450,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
-          reviewee_id?: string
+          reviewee_id?: string | null
+          reviewee_company_id?: string | null
           reviewer_display_name?: string | null
           reviewer_id?: string
           trip_id?: string | null
@@ -461,6 +464,13 @@ export type Database = {
             columns: ["reviewee_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_company_id_fkey"
+            columns: ["reviewee_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -1151,7 +1161,8 @@ export type Database = {
         Args: {
           p_comment: string
           p_rating: number
-          p_reviewee_id: string
+          p_reviewee_id?: string
+          p_reviewee_company_id?: string
           p_reviewer_display_name?: string
           p_reviewer_id?: string
           p_trip_id?: string

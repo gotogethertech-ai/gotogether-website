@@ -6,8 +6,16 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { VerifiedBadge } from "@/components/companies/VerifiedBadge";
 import { ExploreTripCard } from "@/components/ui/ExploreTripCard";
-import { formatRatingWithBasis, formatTripsRun, getRealCompanyTrips, type RealCompany } from "@/lib/real-companies";
+import { ReviewCard } from "@/components/profile/ProfileSections";
+import {
+  formatRatingWithBasis,
+  formatTripsRun,
+  getRealCompanyTrips,
+  getRealCompanyReviews,
+  type RealCompany,
+} from "@/lib/real-companies";
 import type { ExploreTrip } from "@/lib/mock-data";
+import type { Review } from "@/lib/profiles-data";
 
 const VISIBLE_CAP = 6;
 
@@ -22,13 +30,20 @@ const VISIBLE_CAP = 6;
  * lib/real-companies.ts's file comment), so this doesn't fabricate copy
  * that isn't backed by real data.
  */
+const REVIEWS_PAGE_SIZE = 5;
+
 export function CompanyProfileClient({ company }: { company: RealCompany }) {
   const [trips, setTrips] = useState<ExploreTrip[] | null>(null);
+  const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [visibleReviewCount, setVisibleReviewCount] = useState(REVIEWS_PAGE_SIZE);
 
   useEffect(() => {
     let cancelled = false;
     getRealCompanyTrips(company.id).then((rows) => {
       if (!cancelled) setTrips(rows);
+    });
+    getRealCompanyReviews(company.id).then((rows) => {
+      if (!cancelled) setReviews(rows);
     });
     return () => {
       cancelled = true;
@@ -105,6 +120,38 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
               <p className="rounded-2xl bg-surface-tint px-6 py-10 text-center text-[13.5px] text-text-tertiary">
                 This company hasn&apos;t published any trips yet.
               </p>
+            )}
+          </section>
+
+          <section className="border-t border-border-divider py-5">
+            <h2 className="mb-4 font-display text-lg font-bold">
+              Reviews {reviews ? `(${reviews.length})` : ""}
+            </h2>
+            {reviews === null ? (
+              <div className="flex flex-col gap-4" aria-hidden="true">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-[70px] animate-pulse rounded-2xl bg-surface-tint" />
+                ))}
+              </div>
+            ) : reviews.length === 0 ? (
+              <p className="text-[12.5px] text-text-tertiary">No reviews yet for {company.name}.</p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4">
+                  {reviews.slice(0, visibleReviewCount).map((r) => (
+                    <ReviewCard key={r.id} review={r} />
+                  ))}
+                </div>
+                {visibleReviewCount < reviews.length && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleReviewCount((c) => c + REVIEWS_PAGE_SIZE)}
+                    className="mt-4 text-[12.5px] font-semibold text-primary hover:underline"
+                  >
+                    Show more
+                  </button>
+                )}
+              </>
             )}
           </section>
         </div>

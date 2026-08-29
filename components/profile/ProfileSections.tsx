@@ -250,7 +250,7 @@ export function ReviewsSection({ profile }: { profile: ProfileData }) {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+export function ReviewCard({ review }: { review: Review }) {
   return (
     <div>
       <div className="mb-1.5 flex items-center gap-2.5">
