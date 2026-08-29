@@ -976,9 +976,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_users: {
+        Row: Database["public"]["Tables"]["users"]["Row"]
+        Relationships: []
+      }
+      public_user_profiles: {
+        Row: {
+          id: string
+          name: string
+          initials: string | null
+          avatar_url: string | null
+          bio: string | null
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          created_at: string
+          trips_joined_override: number | null
+          trips_completed_override: number | null
+          trips_organized_override: number | null
+          cities_explored_override: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      my_private_profile_fields: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          phone: string | null
+          email: string | null
+          gender: string | null
+          date_of_birth: string | null
+          smoking_preference: string | null
+          drinking_preference: string | null
+        }[]
+      }
+      staff_user_private_fields: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          id: string
+          phone: string | null
+          email: string | null
+          gender: string | null
+          date_of_birth: string | null
+          smoking_preference: string | null
+          drinking_preference: string | null
+        }[]
+      }
       admin_add_trip_member: {
         Args: { p_reason?: string; p_trip_id: string; p_user_id: string }
         Returns: undefined

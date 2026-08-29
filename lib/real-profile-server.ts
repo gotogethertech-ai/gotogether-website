@@ -79,7 +79,11 @@ function shapeReviews(
 export async function getRealProfileByIdServer(userId: string): Promise<ProfileData | null> {
   const supabase = await createServerSupabaseClient();
   const [{ data: row }, { data: trust }, { data: reviewRows }] = await Promise.all([
-    supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+    // public_user_profiles (migration 054) — see the client-side twin
+    // (lib/real-profile.ts) for why this reads the safe view instead of
+    // the users table directly (phone/email/DOB are no longer publicly
+    // readable there).
+    supabase.from("public_user_profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("trust_scores").select("score").eq("user_id", userId).maybeSingle(),
     supabase
       .from("reviews")

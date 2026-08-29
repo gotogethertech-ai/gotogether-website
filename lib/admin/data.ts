@@ -44,7 +44,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     { count: frozenScores },
     { count: pendingCompanies },
   ] = await Promise.all([
-    supabase.from("users").select("id", { count: "exact", head: true }).is("deleted_at", null),
+    supabase.from("admin_users").select("id", { count: "exact", head: true }).is("deleted_at", null),
     supabase.from("trips").select("id", { count: "exact", head: true }).in("status", ["live", "in_progress"]),
     supabase.from("verifications").select("submitted_at").eq("status", "pending").order("submitted_at", { ascending: true }),
     supabase.from("trust_scores").select("user_id", { count: "exact", head: true }).eq("is_frozen", true),
@@ -103,7 +103,12 @@ export type AdminUserListItem = AdminUserRow & {
 
 export async function getUsers(filter: UsersFilter, limit = 50, offset = 0): Promise<{ users: AdminUserListItem[]; total: number }> {
   const supabase = createClient();
-  let query = supabase.from("users").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  // admin_users (migration 057), not users directly — users' RLS/column
+  // grants now only allow a self-or-public-columns read (migration
+  // 055/056, fixing the PII exposure where phone/email/dob were readable
+  // by anyone). admin_users is a staff-gated view exposing the full row,
+  // needed here for phone/email search and full profile fields.
+  let query = supabase.from("admin_users").select("*", { count: "exact" }).order("created_at", { ascending: false });
 
   if (filter.q) query = query.or(`name.ilike.%${filter.q}%,phone.ilike.%${filter.q}%,email.ilike.%${filter.q}%`);
   if (filter.status && filter.status !== "all") query = query.eq("account_status", filter.status);
@@ -135,7 +140,7 @@ export type AdminUserDetail = AdminUserRow & { trustScore: number; trustFrozen: 
 export async function getUserDetail(userId: string): Promise<AdminUserDetail | null> {
   const supabase = createClient();
   const [{ data: user }, { data: trust }] = await Promise.all([
-    supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+    supabase.from("admin_users").select("*").eq("id", userId).maybeSingle(),
     supabase.from("trust_scores").select("score, is_frozen").eq("user_id", userId).maybeSingle(),
   ]);
   if (!user) return null;
@@ -356,7 +361,7 @@ export async function getDestinations(activeOnly = true): Promise<AdminDestinati
 
 export async function getIdVerifiedUsers(q?: string): Promise<{ id: string; name: string; phone: string | null; email: string | null }[]> {
   const supabase = createClient();
-  let query = supabase.from("users").select("id, name, phone, email").eq("verification_status", "id_verified").order("name", { ascending: true }).limit(50);
+  let query = supabase.from("admin_users").select("id, name, phone, email").eq("verification_status", "id_verified").order("name", { ascending: true }).limit(50);
   if (q) query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
   const { data } = await query;
   return data ?? [];
@@ -367,7 +372,7 @@ export async function getIdVerifiedUsers(q?: string): Promise<{ id: string; name
  * any user a trip host or member without requiring ID verification. */
 export async function getAllUsersForPicker(q?: string): Promise<{ id: string; name: string; phone: string | null; email: string | null; verification_status: string }[]> {
   const supabase = createClient();
-  let query = supabase.from("users").select("id, name, phone, email, verification_status").order("name", { ascending: true }).limit(50);
+  let query = supabase.from("admin_users").select("id, name, phone, email, verification_status").order("name", { ascending: true }).limit(50);
   if (q) query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
   const { data } = await query;
   return data ?? [];

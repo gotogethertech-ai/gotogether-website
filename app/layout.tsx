@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { VerificationRequiredInterstitial } from "@/components/auth/VerificationRequiredInterstitial";
 import { CompleteProfileBanner } from "@/components/auth/CompleteProfileBanner";
+import { AuthErrorBanner } from "@/components/auth/AuthErrorBanner";
 import { PostHogPageView } from "@/components/analytics/PostHogPageView";
 import { SITE_URL } from "@/lib/site";
 
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <PostHogPageView />
         </Suspense>
         <AuthProvider>
+          <AuthErrorBanner />
           <CompleteProfileBanner />
           {children}
           <VerificationRequiredInterstitial />

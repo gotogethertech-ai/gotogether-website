@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { TripDetail } from "@/lib/trip-details";
 import { useAuth } from "@/lib/auth-context";
 import { sendJoinRequest, leaveTrip } from "@/lib/real-trip-details";
+import { withdrawJoinRequest } from "@/lib/real-going-trips";
 import type { ViewerRelationship } from "@/lib/real-trip-details";
 import { analytics } from "@/lib/analytics";
 import { getOrCreateCompanyChat } from "@/lib/real-companies";
@@ -40,6 +41,9 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawn, setWithdrawn] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const cta = resolveCta({ trip, relationship, requested });
 
@@ -64,6 +68,20 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
       setJoinError(err instanceof Error ? err.message : "Couldn't send your request. Try again.");
     } finally {
       setRequesting(false);
+    }
+  }
+
+  async function fireWithdraw() {
+    if (!user) return;
+    setWithdrawing(true);
+    setWithdrawError(null);
+    try {
+      await withdrawJoinRequest(trip.id, user.id);
+      setWithdrawn(true);
+    } catch (err) {
+      setWithdrawError(err instanceof Error ? err.message : "Couldn't withdraw your request. Try again.");
+    } finally {
+      setWithdrawing(false);
     }
   }
 
@@ -121,6 +139,16 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
     );
   }
 
+  if (withdrawn) {
+    return (
+      <div className="hidden min-[900px]:block">
+        <div className="rounded-[18px] border border-border p-5 text-center text-[12.5px] text-text-tertiary">
+          Your request has been withdrawn.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Desktop / tablet-landscape sticky sidebar */}
@@ -146,6 +174,23 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
             <p className="mt-2.5 text-center text-[10.5px] text-text-muted">
               {cta.helperText}
             </p>
+          )}
+          {(requested || relationship === "pending") && (
+            <>
+              <button
+                type="button"
+                onClick={fireWithdraw}
+                disabled={withdrawing}
+                className="mt-2.5 block w-full text-center text-[11.5px] font-semibold text-danger hover:underline disabled:opacity-60"
+              >
+                {withdrawing ? "Withdrawing…" : "Withdraw request"}
+              </button>
+              {withdrawError && (
+                <p role="alert" className="mt-1.5 text-center text-[10.5px] font-medium text-danger">
+                  {withdrawError}
+                </p>
+              )}
+            </>
           )}
           {trip.kind === "partner" && trip.companyId && (
             <div className="mt-3 flex flex-col gap-2 border-t border-border-divider pt-3">
@@ -188,17 +233,22 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
           within72Hours={within72Hours}
           onCancel={() => setConfirmLeave(false)}
           onConfirm={async () => {
-            if (user) {
-              try {
-                await leaveTrip(trip.id, user.id);
-              } catch {
-                // The dialog already closes below regardless — a failed
-                // leave just means the panel still shows "member" state,
-                // which the user can retry rather than a silently stuck UI.
-              }
+            if (!user) {
+              setConfirmLeave(false);
+              return;
             }
-            setConfirmLeave(false);
-            setLeft(true);
+            try {
+              await leaveTrip(trip.id, user.id);
+              setConfirmLeave(false);
+              setLeft(true);
+            } catch (err) {
+              // A failed leave now stays on the "member" state with a
+              // visible error instead of silently claiming success — this
+              // used to unconditionally show "You've left this trip" even
+              // when the write failed (e.g. an RLS rejection).
+              setJoinError(err instanceof Error ? err.message : "Couldn't leave the trip. Try again.");
+              setConfirmLeave(false);
+            }
           }}
         />
       )}
@@ -213,6 +263,24 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
         {chatError && (
           <p role="alert" className="mb-2 text-center text-[10.5px] font-medium text-danger">
             {chatError}
+          </p>
+        )}
+        {(requested || relationship === "pending") && (
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[10.5px] text-text-muted">{cta.helperText}</p>
+            <button
+              type="button"
+              onClick={fireWithdraw}
+              disabled={withdrawing}
+              className="flex-none text-[11px] font-semibold text-danger hover:underline disabled:opacity-60"
+            >
+              {withdrawing ? "Withdrawing…" : "Withdraw"}
+            </button>
+          </div>
+        )}
+        {withdrawError && (
+          <p role="alert" className="mb-2 text-center text-[10.5px] font-medium text-danger">
+            {withdrawError}
           </p>
         )}
         {trip.kind === "partner" && trip.companyId && (

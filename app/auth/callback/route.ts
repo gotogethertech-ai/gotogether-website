@@ -16,13 +16,26 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
 
+  // Google itself can redirect back with an error instead of a code (e.g.
+  // the user cancelled consent, or — the likely cause of the "picks an
+  // account, comes back, still logged out" loop — this route's own URL
+  // isn't in the Supabase project's Redirect URLs allowlist, which makes
+  // Supabase itself bounce back here with an error before ever handing us
+  // a code). Surface whichever failure actually happened instead of
+  // silently swallowing it.
+  const oauthError = searchParams.get("error_description") ?? searchParams.get("error");
+  if (oauthError) {
+    return NextResponse.redirect(`${origin}/?auth_error=${encodeURIComponent(oauthError)}`);
+  }
+
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+    return NextResponse.redirect(`${origin}/?auth_error=${encodeURIComponent(error.message)}`);
   }
 
-  return NextResponse.redirect(`${origin}/?auth_error=1`);
+  return NextResponse.redirect(`${origin}/?auth_error=${encodeURIComponent("Missing authorization code from Google.")}`);
 }

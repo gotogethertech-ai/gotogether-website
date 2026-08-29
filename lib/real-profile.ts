@@ -99,7 +99,12 @@ export function shapeReviews(
 export async function getRealProfileById(userId: string): Promise<ProfileData | null> {
   const supabase = createClient();
   const [{ data: row }, { data: trust }, { data: reviewRows }] = await Promise.all([
-    supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+    // public_user_profiles (migration 054), not the users table directly —
+    // users' RLS now only allows a full-row read of your own account or by
+    // staff, since the table holds phone/email/DOB. This view exposes only
+    // the public-facing columns this function actually uses, so it works
+    // identically for viewing your own profile and someone else's.
+    supabase.from("public_user_profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("trust_scores").select("score").eq("user_id", userId).maybeSingle(),
     supabase
       .from("reviews")

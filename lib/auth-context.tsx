@@ -48,6 +48,17 @@ import { identifyUser, resetAnalyticsIdentity } from "@/lib/analytics";
 
 type UserRow = Database["public"]["Tables"]["users"]["Row"];
 
+/** The exact shape loadProfile builds: the safe public.users columns
+ * (migration 055 — phone/email/gender/dob are no longer selectable in a
+ * plain users query, even for your own row) merged with the private
+ * fields from my_private_profile_fields(), scoped server-side to
+ * auth.uid() so this always resolves to the caller's own data. */
+type ProfileForAuthUser = Pick<
+  UserRow,
+  "id" | "name" | "initials" | "avatar_url" | "verification_status" | "account_status" | "role"
+> &
+  Pick<UserRow, "date_of_birth" | "gender">;
+
 export type ProtectedActionLabel = string;
 
 /** AuthUser plus the real Supabase id — kept separate from the shared
@@ -101,7 +112,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function toAuthUser(row: UserRow, trustScore: number, unreadMessages: number, unreadNotifications: number): SessionUser {
+function toAuthUser(row: ProfileForAuthUser, trustScore: number, unreadMessages: number, unreadNotifications: number): SessionUser {
   return {
     id: row.id,
     name: row.name,
@@ -173,12 +184,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pendingVerificationSuccessRef = useRef<(() => void) | null>(null);
 
   // Fetch the public.users + trust_scores rows for a signed-in session,
-  // shaped into AuthUser.
+  // shaped into AuthUser. Since migration 055 (fixing the PII exposure
+  // where phone/email/gender/date_of_birth were publicly readable),
+  // users.select("*") only returns the public-safe columns even for your
+  // own row — Postgres column GRANTs aren't conditional on "is this my own
+  // row" the way RLS is. The private fields this app actually needs for
+  // the signed-in user (dateOfBirth/gender, used for age gating and
+  // gender-restricted trip matching) come from my_private_profile_fields()
+  // instead, a SECURITY DEFINER RPC scoped to auth.uid() — see migration
+  // 055.
   const loadProfile = useCallback(
     async (authUserId: string) => {
-      const [{ data: profile, error: profileError }, { data: trust }] = await Promise.all([
-        supabase.from("users").select("*").eq("id", authUserId).maybeSingle(),
+      // Explicit column list, not select("*") — migration 055 revoked
+      // column-level SELECT on the private fields (phone/email/gender/dob/
+      // etc.) for anon+authenticated entirely (Postgres GRANTs can't
+      // express "only your own row" the way RLS does), so requesting them
+      // here would fail outright rather than silently omit them. The
+      // private fields this app needs for the signed-in user come from
+      // my_private_profile_fields() instead, scoped to auth.uid().
+      const SAFE_USER_COLUMNS =
+        "id, name, initials, avatar_url, verification_status, account_status, role, created_at";
+      const [{ data: profile, error: profileError }, { data: trust }, { data: privateFields }] = await Promise.all([
+        supabase.from("users").select(SAFE_USER_COLUMNS).eq("id", authUserId).maybeSingle(),
         supabase.from("trust_scores").select("score").eq("user_id", authUserId).maybeSingle(),
+        supabase.rpc("my_private_profile_fields").maybeSingle(),
       ]);
 
       if (profileError || !profile) {
@@ -187,11 +216,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // on a brand-new sign-up. One short retry covers it without a
         // spinner-forever failure mode.
         await new Promise((r) => setTimeout(r, 400));
-        const retry = await supabase.from("users").select("*").eq("id", authUserId).maybeSingle();
+        const retry = await supabase.from("users").select(SAFE_USER_COLUMNS).eq("id", authUserId).maybeSingle();
         if (!retry.data) return null;
         const retryTrust = await supabase.from("trust_scores").select("score").eq("user_id", authUserId).maybeSingle();
+        const retryPrivateFields = await supabase.rpc("my_private_profile_fields").maybeSingle();
         const retryUnreadNotifications = await getUnreadNotificationCount(retry.data.id);
-        return toAuthUser(retry.data, Number(retryTrust.data?.score ?? 5), 0, retryUnreadNotifications);
+        return toAuthUser(
+          { ...retry.data, gender: retryPrivateFields.data?.gender ?? null, date_of_birth: retryPrivateFields.data?.date_of_birth ?? null },
+          Number(retryTrust.data?.score ?? 5),
+          0,
+          retryUnreadNotifications
+        );
       }
 
       // Unread messages: no per-room "last read" tracking exists yet (chat
@@ -202,7 +237,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // table yet, so this will correctly stay 0 until a write path exists
       // and then just start working.
       const unreadNotifications = await getUnreadNotificationCount(profile.id);
-      return toAuthUser(profile, Number(trust?.score ?? 5), 0, unreadNotifications);
+      return toAuthUser(
+        { ...profile, gender: privateFields?.gender ?? null, date_of_birth: privateFields?.date_of_birth ?? null },
+        Number(trust?.score ?? 5),
+        0,
+        unreadNotifications
+      );
     },
     [supabase]
   );
