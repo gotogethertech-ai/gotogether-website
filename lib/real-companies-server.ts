@@ -44,7 +44,10 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
   const match = withSlugs.find((c) => c.slug === slug);
   if (!match) return null;
 
-  const { data: trips } = await supabase.from("trips").select("id").eq("company_id", match.id);
+  const [{ data: trips }, { data: tripRecords }] = await Promise.all([
+    supabase.from("trips").select("id").eq("company_id", match.id),
+    supabase.from("company_trip_records").select("id").eq("company_id", match.id),
+  ]);
   const tripIds = (trips ?? []).map((t) => t.id);
 
   let rating: string | null = null;
@@ -65,7 +68,10 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
     slug,
     name: match.name,
     logoInitial: logoInitialsFrom(match.name),
-    tripsRun: tripIds.length,
+    // Counts admin-added company_trip_records (migration 051) alongside
+    // real trips — must stay in sync with getRealCompanies() in
+    // lib/real-companies.ts, which does the same on the client side.
+    tripsRun: tripIds.length + (tripRecords ?? []).length,
     rating,
     supportEmail: match.contact_email,
     verifiedSince: MONTH_YEAR.format(new Date(match.created_at)),

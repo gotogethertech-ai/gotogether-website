@@ -110,19 +110,16 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
               )}
             </div>
 
-            {trips === null || tripRecords === null ? (
+            {trips === null ? (
               <div className="grid grid-cols-1 gap-4.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3" aria-hidden="true">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="h-[220px] animate-pulse rounded-2xl bg-surface-tint" />
                 ))}
               </div>
-            ) : visibleTrips.length > 0 || tripRecords.length > 0 ? (
+            ) : visibleTrips.length > 0 ? (
               <div className="grid grid-cols-1 gap-4.5 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3">
                 {visibleTrips.map((trip) => (
                   <ExploreTripCard key={trip.id} trip={trip} />
-                ))}
-                {tripRecords.map((record) => (
-                  <CompanyTripRecordCard key={record.id} record={record} />
                 ))}
               </div>
             ) : (
@@ -131,6 +128,28 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
               </p>
             )}
           </section>
+
+          {tripRecords === null || tripRecords.length > 0 ? (
+            <section className="border-t border-border-divider py-5">
+              <h2 className="mb-3 font-display text-lg font-bold">Past trips</h2>
+              {tripRecords === null ? (
+                <div className="flex flex-col gap-2" aria-hidden="true">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-[36px] animate-pulse rounded bg-surface-tint" />
+                  ))}
+                </div>
+              ) : (
+                <ul className="divide-y divide-border-divider">
+                  {tripRecords.map((record) => (
+                    <li key={record.id} className="flex items-baseline justify-between gap-4 py-2.5 text-[13px]">
+                      <span className="font-medium text-text-primary">{record.title}</span>
+                      <span className="flex-none text-[12px] text-text-tertiary">{record.dateLabel}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
 
           <section className="border-t border-border-divider py-5">
             <h2 className="mb-4 font-display text-lg font-bold">
@@ -167,22 +186,5 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
       </main>
       <Footer />
     </>
-  );
-}
-
-/** Admin-added trip-history entry (migration 051) — deliberately NOT a
- * link: there's no real trips row behind it, so nothing to navigate to.
- * Rendered alongside real ExploreTripCards in the same grid, styled
- * plainly (no image/budget/members) so it reads as a record, not a
- * bookable listing. */
-function CompanyTripRecordCard({ record }: { record: CompanyTripRecord }) {
-  return (
-    <div className="flex h-[220px] flex-col justify-between rounded-2xl border border-border-divider bg-surface-tint p-4">
-      <div>
-        <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-text-muted">Past trip</p>
-        <h3 className="font-display text-[14px] font-bold leading-snug">{record.title}</h3>
-      </div>
-      <p className="text-[12px] text-text-tertiary">{record.dateLabel}</p>
-    </div>
   );
 }
