@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { ScrollRow } from "@/components/ui/ScrollRow";
 import { Avatar } from "@/components/Avatar";
 import type { ProfileData, Review, TravelHistoryEntry } from "@/lib/profiles-data";
@@ -252,21 +251,17 @@ export function ReviewsSection({ profile }: { profile: ProfileData }) {
 }
 
 function ReviewCard({ review }: { review: Review }) {
-  const profileHref = `/profile/${encodeURIComponent(review.reviewerId ?? review.reviewerName)}`;
   return (
     <div>
       <div className="mb-1.5 flex items-center gap-2.5">
-        <Link
-          href={profileHref}
+        <div
           className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-surface-avatar text-[10px] font-semibold text-[oklch(40%_0.1_255)]"
           style={{ width: 28, height: 28 }}
         >
           {review.reviewerInitials}
-        </Link>
+        </div>
         <div className="text-[12px]">
-          <Link href={profileHref} className="font-semibold hover:text-primary">
-            {review.reviewerName}
-          </Link>
+          <span className="font-semibold">{review.reviewerName}</span>
           <span className="text-text-muted"> · {review.tripName} · {review.date}</span>
           <div className="mt-0.5 text-[11px] font-semibold text-[oklch(70%_0.15_80)]">
             {"⭐".repeat(Math.max(0, Math.min(5, Math.round(review.rating))))} {review.rating.toFixed(1)}
