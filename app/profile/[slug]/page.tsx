@@ -9,6 +9,19 @@ import { PublicProfileClient } from "./PublicProfileClient";
 // real-id request is rendered on demand.
 export const dynamicParams = true;
 
+// dynamicParams alone isn't enough: Next.js still attempts a static/ISR
+// pass for any param outside generateStaticParams()'s fixed mock-slug
+// list, and resolveProfile()'s real-id branch calls cookies() (via
+// createServerSupabaseClient in real-profile-server.ts) to read the
+// session. Calling cookies() during that attempted static pass throws
+// DYNAMIC_SERVER_USAGE instead of falling back gracefully — this is what
+// produced the "500: This page couldn't load" for every real user's
+// profile (any id not in the mock set) while the mock-slug and self
+// profiles kept working. Forcing the route dynamic skips the static
+// attempt entirely, which is correct anyway since a live DB lookup is
+// exactly what this route needs on every request.
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return getAllProfileSlugs().map((slug) => ({ slug }));
 }
