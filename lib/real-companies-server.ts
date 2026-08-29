@@ -13,7 +13,6 @@ import { slugify, dedupeSlugs, type RealCompany } from "@/lib/real-companies";
  * comment for the next/headers bundling reason.
  */
 
-const MIN_RATING_SAMPLE = 5;
 const MONTH_YEAR = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
 
 function logoInitialsFrom(name: string): string {
@@ -50,18 +49,17 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
   ]);
   const tripIds = (trips ?? []).map((t) => t.id);
 
-  let rating: string | null = null;
-  if (tripIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("rating")
-      .in("trip_id", tripIds)
-      .eq("visibility", "published");
-    const ratings = (reviews ?? []).map((r) => r.rating);
-    if (ratings.length >= MIN_RATING_SAMPLE) {
-      rating = (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1);
-    }
-  }
+  // Ratings from reviews tied to a real trip, plus reviews written
+  // directly against the company's profile (migration 048) — must stay in
+  // sync with getRealCompanies() in lib/real-companies.ts.
+  const [{ data: tripReviews }, { data: companyReviews }] = await Promise.all([
+    tripIds.length > 0
+      ? supabase.from("reviews").select("rating").in("trip_id", tripIds).eq("visibility", "published")
+      : Promise.resolve({ data: [] as { rating: number }[] }),
+    supabase.from("reviews").select("rating").eq("reviewee_company_id", match.id).eq("visibility", "published"),
+  ]);
+  const allRatings = [...(tripReviews ?? []), ...(companyReviews ?? [])].map((r) => r.rating);
+  const rating = allRatings.length > 0 ? (allRatings.reduce((sum, r) => sum + r, 0) / allRatings.length).toFixed(1) : null;
 
   return {
     id: match.id,
@@ -73,6 +71,7 @@ export async function getRealCompanyBySlugServer(slug: string): Promise<RealComp
     // lib/real-companies.ts, which does the same on the client side.
     tripsRun: tripIds.length + (tripRecords ?? []).length,
     rating,
+    reviewCount: allRatings.length,
     supportEmail: match.contact_email,
     verifiedSince: MONTH_YEAR.format(new Date(match.created_at)),
   };

@@ -39,12 +39,11 @@ export type RealCompany = {
   name: string;
   logoInitial: string;
   tripsRun: number;
-  rating: string | null; // null → below the minimum-sample threshold
+  rating: string | null; // null → no ratings at all yet
+  reviewCount: number; // ratings the average above is based on
   supportEmail: string | null;
   verifiedSince: string; // formatted month/year
 };
-
-const MIN_RATING_SAMPLE = 5;
 
 export function slugify(name: string): string {
   return name
@@ -142,13 +141,29 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
     }
   }
 
+  // Reviews written directly against a company's profile (migration 048,
+  // e.g. via the admin Add Review flow) also count toward its rating —
+  // not just reviews tied to one of its real trips.
+  const { data: companyReviews } = await supabase
+    .from("reviews")
+    .select("reviewee_company_id, rating")
+    .in("reviewee_company_id", companyIds)
+    .eq("visibility", "published");
+  const directRatingsByCompany = new Map<string, number[]>();
+  for (const r of companyReviews ?? []) {
+    if (!r.reviewee_company_id) continue;
+    const list = directRatingsByCompany.get(r.reviewee_company_id) ?? [];
+    list.push(r.rating);
+    directRatingsByCompany.set(r.reviewee_company_id, list);
+  }
+
   const shaped = companies.map((c): RealCompany => {
     const tripIds = tripIdsByCompany.get(c.id) ?? [];
-    const allRatings = tripIds.flatMap((tid) => ratingsByTrip.get(tid) ?? []);
-    const rating =
-      allRatings.length >= MIN_RATING_SAMPLE
-        ? (allRatings.reduce((sum, r) => sum + r, 0) / allRatings.length).toFixed(1)
-        : null;
+    const allRatings = [
+      ...tripIds.flatMap((tid) => ratingsByTrip.get(tid) ?? []),
+      ...(directRatingsByCompany.get(c.id) ?? []),
+    ];
+    const rating = allRatings.length > 0 ? (allRatings.reduce((sum, r) => sum + r, 0) / allRatings.length).toFixed(1) : null;
     return {
       id: c.id,
       slug: slugify(c.name),
@@ -156,6 +171,7 @@ export async function getRealCompanies(): Promise<RealCompany[]> {
       logoInitial: logoInitialsFrom(c.name),
       tripsRun: tripIds.length + (recordCountByCompany.get(c.id) ?? 0),
       rating,
+      reviewCount: allRatings.length,
       supportEmail: c.contact_email,
       verifiedSince: formatVerifiedSince(c.created_at),
     };
@@ -179,8 +195,8 @@ export async function getRealCompanyBySlug(slug: string): Promise<RealCompany | 
 }
 
 export function formatRatingWithBasis(company: RealCompany): string {
-  if (!company.rating) return "Not enough reviews yet";
-  return `${company.rating} · from ${company.tripsRun} trips`;
+  if (!company.rating) return "No reviews yet";
+  return `${company.rating} (${company.reviewCount})`;
 }
 
 export function formatTripsRun(company: RealCompany): string {
