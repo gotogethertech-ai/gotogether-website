@@ -441,6 +441,42 @@ export async function updateTrip(
   }
 }
 
+/** Must match migration 027_avatars_storage_bucket's bucket constraints,
+ * same limits the self-service EditProfileClient enforces client-side. */
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+/** Admin-side avatar upload — staff is permitted to write into any user's
+ * folder in the avatars bucket via the `OR is_staff()` clause on its
+ * storage RLS policies (migration 047), so an admin can set a photo for a
+ * user who never signs in to set their own (e.g. an admin-created user).
+ * Uploads under `userId` (not the signed-in admin's id) so it lands in the
+ * same path the user's own EditProfileClient would use, and overwrites any
+ * existing avatar at that fixed path (upsert: true, same as self-service). */
+export async function uploadAvatarAsAdmin(userId: string, file: File): Promise<string> {
+  const ext = AVATAR_MIME_TO_EXT[file.type];
+  if (!ext) throw new Error("Please choose a JPEG, PNG, or WEBP image");
+  if (file.size > AVATAR_MAX_BYTES) throw new Error("Image must be 5MB or smaller");
+
+  const supabase = createClient();
+  const path = `${userId}/avatar.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("avatars").getPublicUrl(path);
+  // Cache-bust so the new photo shows immediately instead of a
+  // browser-cached copy of the old file at the same URL.
+  return `${publicUrl}?t=${Date.now()}`;
+}
+
 /** Admin-side itinerary PDF upload — staff is permitted to write into any
  * organizer's folder in the trip-documents bucket via the `OR is_staff()`
  * clause on its storage RLS policies (migration 037), so this uploads

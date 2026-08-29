@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   getUserDetail,
@@ -25,6 +25,7 @@ import {
   setTrustScore,
   writeReview,
   editReview,
+  uploadAvatarAsAdmin,
 } from "@/lib/admin/mutations";
 import { Pill, ConfirmDialog, AdminButton, ErrorRetry, useLiveAnnouncer } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -528,8 +529,32 @@ function EditProfileDialog({
   const [tripsCompleted, setTripsCompleted] = useState(detail.trips_completed_override != null ? String(detail.trips_completed_override) : "");
   const [tripsOrganized, setTripsOrganized] = useState(detail.trips_organized_override != null ? String(detail.trips_organized_override) : "");
   const [citiesExplored, setCitiesExplored] = useState(detail.cities_explored_override != null ? String(detail.cities_explored_override) : "");
+  const [avatarUrl, setAvatarUrl] = useState(detail.avatar_url ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatarAsAdmin(detail.id, file);
+      setAvatarUrl(url);
+      // Persist immediately, same as the self-service Edit Profile page —
+      // otherwise a photo change would be silently discarded if the admin
+      // closes the dialog without hitting Save.
+      await updateUserProfile(detail.id, { avatarUrl: url });
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Couldn't upload photo.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -570,6 +595,40 @@ function EditProfileDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <form onSubmit={submit} className="w-full max-w-[480px] rounded-2xl bg-white p-6 shadow-xl">
         <h2 className="mb-4 text-[16px] font-bold">Edit profile</h2>
+
+        <div className="mb-4 flex items-center gap-3">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              aria-hidden="true"
+              className="h-14 w-14 flex-none rounded-full object-cover"
+              style={{ width: 56, height: 56 }}
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-[oklch(92%_0.01_255)] text-sm font-bold text-[oklch(40%_0.1_255)]"
+              style={{ width: 56, height: 56 }}
+            >
+              {detail.initials ?? "?"}
+            </div>
+          )}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <AdminButton type="button" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={avatarUploading}>
+              {avatarUploading ? "Uploading…" : "Change photo"}
+            </AdminButton>
+            {avatarError && <p className="mt-1 text-[11px] font-medium text-[oklch(45%_0.16_25)]">{avatarError}</p>}
+          </div>
+        </div>
 
         <div className="mb-3">
           <label className="mb-1 block text-[11.5px] font-semibold">Name</label>
