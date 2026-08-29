@@ -425,6 +425,7 @@ export type Database = {
           id: string
           rating: number
           reviewee_id: string
+          reviewer_display_name: string | null
           reviewer_id: string
           trip_id: string
           visibility: Database["public"]["Enums"]["review_visibility"]
@@ -435,6 +436,7 @@ export type Database = {
           id?: string
           rating: number
           reviewee_id: string
+          reviewer_display_name?: string | null
           reviewer_id: string
           trip_id: string
           visibility?: Database["public"]["Enums"]["review_visibility"]
@@ -445,6 +447,7 @@ export type Database = {
           id?: string
           rating?: number
           reviewee_id?: string
+          reviewer_display_name?: string | null
           reviewer_id?: string
           trip_id?: string
           visibility?: Database["public"]["Enums"]["review_visibility"]
@@ -1146,6 +1149,7 @@ export type Database = {
           p_comment: string
           p_rating: number
           p_reviewee_id: string
+          p_reviewer_display_name?: string
           p_reviewer_id?: string
           p_trip_id: string
         }

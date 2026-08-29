@@ -134,7 +134,19 @@ export const setTrustScore = (userId: string, score: number, reason?: string) =>
   callRpc("admin_set_trust_score", { p_user_id: userId, p_score: score, p_reason: reason });
 
 // ── Admin-authored / admin-edited reviews (admin-only) ────────────────
-export async function writeReview(input: { revieweeId: string; tripId: string; rating: number; comment: string; reviewerId?: string }): Promise<string> {
+// reviewerDisplayName (migration 043) lets admin type a free-text name for
+// the review instead of it being attributed to a real linked account —
+// reviewer_id still points at a real users row (defaults to the acting
+// admin) for referential integrity, but every read path shows
+// reviewer_display_name instead of that row's name when it's set.
+export async function writeReview(input: {
+  revieweeId: string;
+  tripId: string;
+  rating: number;
+  comment: string;
+  reviewerId?: string;
+  reviewerDisplayName?: string;
+}): Promise<string> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("admin_write_review", {
     p_reviewee_id: input.revieweeId,
@@ -142,6 +154,7 @@ export async function writeReview(input: { revieweeId: string; tripId: string; r
     p_rating: input.rating,
     p_comment: input.comment,
     p_reviewer_id: input.reviewerId,
+    p_reviewer_display_name: input.reviewerDisplayName,
   });
   if (error) throw new Error(error.message);
   return data as string;

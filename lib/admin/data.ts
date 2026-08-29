@@ -215,7 +215,11 @@ export async function getUserReviews(userId: string): Promise<AdminUserReviewRow
   const { data: reviewers } = await supabase.from("users").select("id, name").in("id", reviewerIds);
   const nameById = new Map((reviewers ?? []).map((r) => [r.id, r.name]));
 
-  return reviews.map((r) => ({ ...r, reviewerName: nameById.get(r.reviewer_id) ?? "Unknown" }));
+  // reviewer_display_name (migration 043) overrides the real linked
+  // account's name when an admin typed a free-text reviewer for this
+  // review — null for every normal peer review and most admin-authored
+  // ones, which keep showing the real account's name as before.
+  return reviews.map((r) => ({ ...r, reviewerName: r.reviewer_display_name ?? nameById.get(r.reviewer_id) ?? "Unknown" }));
 }
 
 // ── Verification queue ───────────────────────────────────────────────

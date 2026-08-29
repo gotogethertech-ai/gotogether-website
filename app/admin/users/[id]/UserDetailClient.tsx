@@ -6,9 +6,11 @@ import {
   getUserDetail,
   getUserTrips,
   getUserReviews,
+  getTrips,
   type AdminUserDetail,
   type AdminUserTripRow,
   type AdminUserReviewRow,
+  type AdminTripListItem,
 } from "@/lib/admin/data";
 import {
   warnUser,
@@ -757,17 +759,40 @@ function AddReviewDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const eligibleTrips = trips.filter((t) => t.status === "completed");
-  const [tripId, setTripId] = useState(eligibleTrips[0]?.tripId ?? "");
+  // No restriction to this user's own completed trips anymore — admin can
+  // attribute a review to any trip on the platform. This user's own trips
+  // (any status) are offered first since they're the most likely pick;
+  // the search box below reaches every other trip.
+  const [tripQuery, setTripQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AdminTripListItem[] | null>(null);
+  const [tripId, setTripId] = useState(trips[0]?.tripId ?? "");
+  const [tripLabel, setTripLabel] = useState(trips[0]?.title ?? "");
+  const [reviewerDisplayName, setReviewerDisplayName] = useState("");
   const [rating, setRating] = useState("5");
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!tripQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => getTrips({ q: tripQuery }, 10, 0))
+      .then(({ trips: rows }) => {
+        if (!cancelled) setSearchResults(rows);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tripQuery]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!tripId) {
-      setError("Choose a completed trip to attribute this review to.");
+      setError("Choose a trip to attribute this review to.");
       return;
     }
     const r = Number(rating);
@@ -782,7 +807,7 @@ function AddReviewDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await writeReview({ revieweeId, tripId, rating: r, comment });
+      await writeReview({ revieweeId, tripId, rating: r, comment, reviewerDisplayName: reviewerDisplayName.trim() || undefined });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add review.");
@@ -796,23 +821,79 @@ function AddReviewDialog({
       <form onSubmit={submit} className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
         <h2 className="mb-1 text-[16px] font-bold">Add review</h2>
         <p className="mb-4 text-[12px] text-[oklch(50%_0.01_255)]">
-          Directly authors a published review on this user&apos;s profile, attributed to you as admin unless you specify otherwise. This is an
-          admin override of the normal peer-review flow.
+          Directly authors a published review on this user&apos;s profile. This is an admin override of the normal peer-review flow.
         </p>
-        {eligibleTrips.length === 0 ? (
-          <p className="mb-4 text-[12.5px] text-[oklch(55%_0.01_255)]">This user has no completed trips to attribute a review to.</p>
-        ) : (
-          <div className="mb-3">
-            <label className="mb-1 block text-[11.5px] font-semibold">Trip</label>
-            <select value={tripId} onChange={(e) => setTripId(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]">
-              {eligibleTrips.map((t) => (
+
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Trip</label>
+          {trips.length > 0 && (
+            <select
+              value={trips.some((t) => t.tripId === tripId) ? tripId : ""}
+              onChange={(e) => {
+                const t = trips.find((x) => x.tripId === e.target.value);
+                if (t) {
+                  setTripId(t.tripId);
+                  setTripLabel(t.title);
+                  setTripQuery("");
+                }
+              }}
+              className="mb-1.5 w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+            >
+              <option value="">This user's trips…</option>
+              {trips.map((t) => (
                 <option key={t.tripId} value={t.tripId}>
-                  {t.title}
+                  {t.title} ({t.status})
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          )}
+          <input
+            value={tripQuery}
+            onChange={(e) => setTripQuery(e.target.value)}
+            placeholder="Or search any trip by title…"
+            className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+          />
+          {searchResults && (
+            <div className="mt-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-[oklch(90%_0.005_255)]">
+              {searchResults.length === 0 ? (
+                <p className="px-3 py-2 text-[11.5px] text-[oklch(55%_0.01_255)]">No trips match.</p>
+              ) : (
+                searchResults.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setTripId(t.id);
+                      setTripLabel(t.title);
+                      setTripQuery("");
+                      setSearchResults(null);
+                    }}
+                    className="block w-full px-3 py-2 text-left text-[12.5px] hover:bg-[oklch(97%_0.003_255)]"
+                  >
+                    {t.title}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+          {tripId && (
+            <p className="mt-1.5 text-[11.5px] font-medium text-[oklch(40%_0.14_255)]">Selected: {tripLabel}</p>
+          )}
+        </div>
+
+        <div className="mb-3">
+          <label className="mb-1 block text-[11.5px] font-semibold">Reviewer name (optional)</label>
+          <input
+            value={reviewerDisplayName}
+            onChange={(e) => setReviewerDisplayName(e.target.value)}
+            placeholder="Leave blank to show your admin account"
+            className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]"
+          />
+          <p className="mt-1 text-[10.5px] text-[oklch(55%_0.01_255)]">
+            A free-text name shown as the reviewer — not linked to a real account.
+          </p>
+        </div>
+
         <div className="mb-3">
           <label className="mb-1 block text-[11.5px] font-semibold">Rating (1–5)</label>
           <input type="number" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} className="w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px]" />
@@ -826,7 +907,7 @@ function AddReviewDialog({
           <AdminButton variant="ghost" onClick={onClose} disabled={submitting}>
             Cancel
           </AdminButton>
-          <AdminButton variant="primary" type="submit" loading={submitting || eligibleTrips.length === 0}>
+          <AdminButton variant="primary" type="submit" loading={submitting}>
             Add review
           </AdminButton>
         </div>

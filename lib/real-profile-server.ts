@@ -40,6 +40,7 @@ function shapeReviews(
         comment: string | null;
         created_at: string;
         reviewer_id: string;
+        reviewer_display_name?: string | null;
         users: { name: string; initials: string | null } | { name: string; initials: string | null }[] | null;
         trips: { title: string } | { title: string }[] | null;
       }[]
@@ -49,12 +50,15 @@ function shapeReviews(
   return rows.map((r) => {
     const reviewer = Array.isArray(r.users) ? r.users[0] : r.users;
     const trip = Array.isArray(r.trips) ? r.trips[0] : r.trips;
-    const name = reviewer?.name ?? "GoTogether Member";
+    // reviewer_display_name (migration 043) overrides the real linked
+    // account's name for an admin-authored review typed under a free-text
+    // name — null for every normal peer review.
+    const name = r.reviewer_display_name ?? reviewer?.name ?? "GoTogether Member";
     return {
       id: r.id,
-      reviewerId: r.reviewer_id,
+      reviewerId: r.reviewer_display_name ? undefined : r.reviewer_id,
       reviewerName: name,
-      reviewerInitials: reviewer?.initials ?? initialsFrom(name),
+      reviewerInitials: r.reviewer_display_name ? initialsFrom(name) : reviewer?.initials ?? initialsFrom(name),
       tripName: trip?.title ?? "",
       date: MONTH_YEAR.format(new Date(r.created_at)),
       text: r.comment ?? "",
@@ -70,7 +74,7 @@ export async function getRealProfileByIdServer(userId: string): Promise<ProfileD
     supabase.from("trust_scores").select("score").eq("user_id", userId).maybeSingle(),
     supabase
       .from("reviews")
-      .select("id, rating, comment, created_at, reviewer_id, users!reviews_reviewer_id_fkey(name, initials), trips(title)")
+      .select("id, rating, comment, created_at, reviewer_id, reviewer_display_name, users!reviews_reviewer_id_fkey(name, initials), trips(title)")
       .eq("reviewee_id", userId)
       .eq("visibility", "published")
       .order("created_at", { ascending: false }),
