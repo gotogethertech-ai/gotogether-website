@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getSavedTripIds, saveTrip, unsaveTrip } from "@/lib/real-saved-trips";
+import { analytics } from "@/lib/analytics";
 
 /**
  * Shared saved-trip-ids state for a page rendering many ExploreTripCards
@@ -64,6 +65,7 @@ export function useSavedTripIds() {
       try {
         if (wasSaved) await unsaveTrip(user.id, tripId);
         else await saveTrip(user.id, tripId);
+        analytics.tripSaved(tripId, !wasSaved);
         invalidateSavedIdsCache();
       } catch {
         // Roll back on failure — e.g. a network error or an RLS reject.

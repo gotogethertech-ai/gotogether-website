@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAuth, MINIMUM_AGE } from "@/lib/auth-context";
 import { publishTrip } from "@/lib/real-trips";
+import { analytics } from "@/lib/analytics";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type TripGenderRestriction = Database["public"]["Enums"]["trip_gender_restriction"];
@@ -254,6 +255,7 @@ export function CreateTripProvider({ children }: { children: ReactNode }) {
     setPublishError(null);
     try {
       const tripId = await publishTrip(fields, user.id);
+      analytics.tripCreated(tripId);
       setPublishedTripId(tripId);
       setPublished(true);
       if (typeof window !== "undefined") {

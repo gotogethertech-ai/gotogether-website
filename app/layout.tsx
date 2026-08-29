@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { VerificationRequiredInterstitial } from "@/components/auth/VerificationRequiredInterstitial";
 import { CompleteProfileBanner } from "@/components/auth/CompleteProfileBanner";
+import { PostHogPageView } from "@/components/analytics/PostHogPageView";
 import { SITE_URL } from "@/lib/site";
 
 const TITLE = "GoTogether — Find people already planning your next trip";
@@ -63,6 +65,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <PostHogPageView />
+        </Suspense>
         <AuthProvider>
           <CompleteProfileBanner />
           {children}

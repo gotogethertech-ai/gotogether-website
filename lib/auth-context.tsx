@@ -14,6 +14,7 @@ import type { AuthUser, VerificationStatus } from "@/components/Header";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
 import { getUnreadNotificationCount } from "@/lib/real-notifications";
+import { identifyUser, resetAnalyticsIdentity } from "@/lib/analytics";
 
 /**
  * Client-side auth state + the "protected action" trigger mechanism, per
@@ -213,7 +214,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (session?.user) {
         const profile = await loadProfile(session.user.id);
-        if (!cancelled) setUser(profile);
+        if (!cancelled) {
+          setUser(profile);
+          if (profile) identifyUser(profile.id, { name: profile.name });
+        }
       }
       if (!cancelled) setLoading(false);
     });
@@ -221,12 +225,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: subscription } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
         setUser(null);
+        resetAnalyticsIdentity();
         return;
       }
       if (session?.user) {
         const profile = await loadProfile(session.user.id);
         setUser(profile);
         setSigningIn(false);
+        if (profile) identifyUser(profile.id, { name: profile.name });
       }
     });
 
@@ -296,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     supabase.auth.signOut();
     setUser(null);
+    resetAnalyticsIdentity();
   }, [supabase]);
 
   const closeVerification = useCallback(() => {

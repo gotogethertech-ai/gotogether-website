@@ -6,6 +6,7 @@ import type { TripDetail } from "@/lib/trip-details";
 import { useAuth } from "@/lib/auth-context";
 import { sendJoinRequest, leaveTrip } from "@/lib/real-trip-details";
 import type { ViewerRelationship } from "@/lib/real-trip-details";
+import { analytics } from "@/lib/analytics";
 
 export type { ViewerRelationship };
 
@@ -52,6 +53,7 @@ export function TripActionPanel({ trip, relationship }: TripActionPanelProps) {
     setJoinError(null);
     try {
       await sendJoinRequest(trip.id, user.id, trip.status === "full");
+      analytics.tripJoinRequested(trip.id);
       setRequested(true);
       setToast(true);
       window.setTimeout(() => setToast(false), 3000);
