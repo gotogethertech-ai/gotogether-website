@@ -99,7 +99,7 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
 
           <section className="border-t border-border-divider py-5">
             <div className="mb-4 flex items-baseline justify-between">
-              <h2 className="font-display text-lg font-bold">Trips by {company.name}</h2>
+              <h2 className="font-display text-lg font-bold">Live trips by {company.name}</h2>
               {hasMore && (
                 <Link
                   href={`/explore?company=${encodeURIComponent(company.name)}`}
@@ -124,7 +124,7 @@ export function CompanyProfileClient({ company }: { company: RealCompany }) {
               </div>
             ) : (
               <p className="rounded-2xl bg-surface-tint px-6 py-10 text-center text-[13.5px] text-text-tertiary">
-                This company hasn&apos;t published any trips yet.
+                No live trip by {company.name} right now.
               </p>
             )}
           </section>
