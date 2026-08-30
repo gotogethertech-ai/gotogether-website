@@ -604,3 +604,9 @@ export const deactivateDestination = (destinationId: string) =>
 
 export const reactivateDestination = (destinationId: string) =>
   callRpc("admin_reactivate_destination", { p_destination_id: destinationId });
+
+// ── Site settings (migration 058) ───────────────────────────────────
+// Key/value settings an admin can edit without a code deploy. First use:
+// the WhatsApp support number for the floating "Need help?" button.
+export const setSiteSetting = (key: string, value: string | null) =>
+  callRpc("admin_set_site_setting", { p_key: key, p_value: value });

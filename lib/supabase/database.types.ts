@@ -974,6 +974,35 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          key: string
+          value: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          key: string
+          value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          key?: string
+          value?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       admin_users: {
@@ -998,6 +1027,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_site_setting: {
+        Args: { p_key: string; p_value: string | null }
+        Returns: undefined
+      }
       my_private_profile_fields: {
         Args: Record<PropertyKey, never>
         Returns: {

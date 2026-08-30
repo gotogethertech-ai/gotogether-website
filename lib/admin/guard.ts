@@ -28,6 +28,7 @@ export type AdminCapability =
   | "trustScore.freeze"
   | "testimonial.manage"
   | "destination.manage"
+  | "siteSettings.manage"
   | "auditLog.viewOwn"
   | "auditLog.viewAll"
   | "decision.reverse";
@@ -54,6 +55,7 @@ const ADMIN_CAPABILITIES: AdminCapability[] = [
   "trustScore.freeze",
   "testimonial.manage",
   "destination.manage",
+  "siteSettings.manage",
   "auditLog.viewAll",
   "decision.reverse",
 ];

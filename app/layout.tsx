@@ -6,6 +6,8 @@ import { VerificationRequiredInterstitial } from "@/components/auth/Verification
 import { CompleteProfileBanner } from "@/components/auth/CompleteProfileBanner";
 import { AuthErrorBanner } from "@/components/auth/AuthErrorBanner";
 import { PostHogPageView } from "@/components/analytics/PostHogPageView";
+import { WhatsAppSupportButton } from "@/components/WhatsAppSupportButton";
+import { getSiteSetting } from "@/lib/site-settings-server";
 import { SITE_URL } from "@/lib/site";
 
 const TITLE = "GoTogether — Find people already planning your next trip";
@@ -46,7 +48,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const whatsappNumber = await getSiteSetting("whatsapp_support_number");
+
   return (
     <html lang="en" className="h-full antialiased">
       <head>
@@ -75,6 +79,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <VerificationRequiredInterstitial />
         </AuthProvider>
+        <WhatsAppSupportButton phoneNumber={whatsappNumber} />
       </body>
     </html>
   );

@@ -173,8 +173,21 @@ export function Header({
               </button>
             )}
 
-            {/* Tablet-portrait hybrid (600-899px): search icon + Create CTA inline, hamburger for rest */}
+            {/* Tablet-portrait hybrid (600-899px): hamburger + search icon +
+                Create CTA inline, profile avatar (or Login) at the far
+                right — mirrors the desktop layout's avatar-on-the-right
+                placement instead of ending on the hamburger, so the
+                profile is reachable with one tap instead of only through
+                the hamburger panel. */}
             <div className="flex items-center gap-2.5 min-[900px]:hidden">
+              <button
+                aria-label="Open menu"
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex h-[38px] w-[38px] items-center justify-center rounded-lg text-text-secondary"
+              >
+                <HamburgerIcon />
+              </button>
               <Link
                 href="/explore"
                 aria-label="Search trips"
@@ -210,14 +223,17 @@ export function Header({
                   </span>
                 </>
               )}
-              <button
-                aria-label="Open menu"
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(true)}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-lg text-text-secondary"
-              >
-                <HamburgerIcon />
-              </button>
+              {user ? (
+                <AvatarMenu user={user} />
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  aria-label="Login"
+                  className="text-[12.5px] font-semibold text-text-secondary hover:text-primary font-sans"
+                >
+                  Login
+                </button>
+              )}
             </div>
           </div>
         </div>

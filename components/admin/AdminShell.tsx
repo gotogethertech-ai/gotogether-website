@@ -24,6 +24,7 @@ const NAV_ITEMS: { href: string; label: string; icon: string }[] = [
   { href: "/admin/destinations", label: "Destinations", icon: "◈" },
   { href: "/admin/testimonials", label: "Testimonials", icon: "❝" },
   { href: "/admin/audit-log", label: "Audit Log", icon: "▥" },
+  { href: "/admin/settings", label: "Settings", icon: "⚙" },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
