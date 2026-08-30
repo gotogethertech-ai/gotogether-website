@@ -101,15 +101,26 @@ export function Header({
         style={{ height: scrolled ? "var(--header-height-compressed)" : "var(--header-height-desktop)" }}
       >
         <div className="mx-auto flex h-full max-w-(--content-max-width) items-center justify-between gap-2 px-4 sm:px-6 lg:px-10">
-          {/* Logo — always visible. min-w-0 + flex-none-on-children lets
-              the wordmark truncate/hide instead of overflowing into the
-              hamburger zone on narrow phones (<380px) — px-8 desktop
-              padding plus a full-size wordmark previously left no room
-              for both ends of this justify-between row and the two
-              collided (hamburger rendering on top of "GoTogether"). */}
-          <Link href="/" aria-label="GoTogether home" className="min-w-0 flex-none">
-            <Logo wordmarkClassName="hidden min-[380px]:inline" />
-          </Link>
+          {/* Left zone (<900px): hamburger sits to the left of the logo
+              here — per feedback, everything was too cramped with the
+              hamburger on the right alongside search/messages/avatar, so
+              the row is now split hamburger+logo (left) / CTA+icons+avatar
+              (right) instead of logo (left) / everything (right). Desktop
+              (>=900px) keeps the logo alone on the left, nav uses the
+              hamburger-less full nav instead. */}
+          <div className="flex min-w-0 items-center gap-1.5">
+            <button
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-lg text-text-secondary min-[900px]:hidden"
+            >
+              <HamburgerIcon />
+            </button>
+            <Link href="/" aria-label="GoTogether home" className="min-w-0 flex-none">
+              <Logo wordmarkClassName="hidden min-[380px]:inline text-[17px] min-[900px]:text-[20px]" />
+            </Link>
+          </div>
 
           {/* Desktop/laptop/tablet-landscape primary nav (>=900px) */}
           <nav
@@ -178,28 +189,14 @@ export function Header({
               </button>
             )}
 
-            {/* Tablet-portrait hybrid (600-899px): hamburger + search icon +
-                Create CTA inline, profile avatar (or Login) at the far
-                right — mirrors the desktop layout's avatar-on-the-right
-                placement instead of ending on the hamburger, so the
-                profile is reachable with one tap instead of only through
-                the hamburger panel. */}
+            {/* Tablet-portrait hybrid (<900px): Create CTA inline, profile
+                avatar (or Login) at the far right — mirrors the desktop
+                layout's avatar-on-the-right placement. Hamburger already
+                moved to the left zone (next to the logo); the search icon
+                was dropped from this row entirely since Explore search is
+                already one tap away via the hamburger menu and this row
+                was too cramped for it, pushing the avatar off-screen. */}
             <div className="flex items-center gap-2.5 min-[900px]:hidden">
-              <button
-                aria-label="Open menu"
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(true)}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-lg text-text-secondary"
-              >
-                <HamburgerIcon />
-              </button>
-              <Link
-                href="/explore"
-                aria-label="Search trips"
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-text-tertiary hover:bg-surface-hover"
-              >
-                <SearchIcon size={18} />
-              </Link>
               <span className="hidden min-[600px]:inline-flex">
                 <AccentButton size="sm" onClick={handleCreateTrip}>
                   Create

@@ -36,7 +36,7 @@ export function Logo({
       {showWordmark && (
         <span
           className={`font-display font-bold whitespace-nowrap ${wordmarkClassName}`}
-          style={{ fontSize: wordmarkSize }}
+          style={wordmarkClassName.includes("text-[") ? undefined : { fontSize: wordmarkSize }}
         >
           GoTogether
         </span>
