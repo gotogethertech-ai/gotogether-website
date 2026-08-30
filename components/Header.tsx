@@ -100,10 +100,15 @@ export function Header({
         }`}
         style={{ height: scrolled ? "var(--header-height-compressed)" : "var(--header-height-desktop)" }}
       >
-        <div className="mx-auto flex h-full max-w-(--content-max-width) items-center justify-between px-8 lg:px-10">
-          {/* Logo — always visible */}
-          <Link href="/" aria-label="GoTogether home">
-            <Logo />
+        <div className="mx-auto flex h-full max-w-(--content-max-width) items-center justify-between gap-2 px-4 sm:px-6 lg:px-10">
+          {/* Logo — always visible. min-w-0 + flex-none-on-children lets
+              the wordmark truncate/hide instead of overflowing into the
+              hamburger zone on narrow phones (<380px) — px-8 desktop
+              padding plus a full-size wordmark previously left no room
+              for both ends of this justify-between row and the two
+              collided (hamburger rendering on top of "GoTogether"). */}
+          <Link href="/" aria-label="GoTogether home" className="min-w-0 flex-none">
+            <Logo wordmarkClassName="hidden min-[380px]:inline" />
           </Link>
 
           {/* Desktop/laptop/tablet-landscape primary nav (>=900px) */}
@@ -137,7 +142,7 @@ export function Header({
           </nav>
 
           {/* Right zone */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-none items-center gap-4">
             {/* CTA: full label >=1024px, "Create" 900-1023px per laptop collapse rule */}
             <span className="hidden min-[900px]:inline-flex">
               <AccentButton onClick={handleCreateTrip}>

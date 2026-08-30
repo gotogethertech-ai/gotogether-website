@@ -5,6 +5,10 @@ type LogoProps = {
   wordmarkSize?: number;
   showWordmark?: boolean;
   className?: string;
+  /** Extra classes on the wordmark <span> — e.g. "hidden xs:inline" so the
+   * text drops out on the narrowest phones instead of overflowing into
+   * whatever sits on the other side of the header row. */
+  wordmarkClassName?: string;
 };
 
 /**
@@ -17,6 +21,7 @@ export function Logo({
   wordmarkSize = 20,
   showWordmark = true,
   className = "",
+  wordmarkClassName = "",
 }: LogoProps) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
@@ -30,7 +35,7 @@ export function Logo({
       />
       {showWordmark && (
         <span
-          className="font-display font-bold"
+          className={`font-display font-bold whitespace-nowrap ${wordmarkClassName}`}
           style={{ fontSize: wordmarkSize }}
         >
           GoTogether
