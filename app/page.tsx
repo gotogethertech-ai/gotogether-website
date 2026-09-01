@@ -51,10 +51,17 @@ const HOW_IT_WORKS = [
 ];
 
 export default async function Home() {
-  const { featured, partners, heroPeek } = await getRealHomepageTrips();
-  const destinations = await getActiveDestinations();
-  const testimonials = await getPublishedTestimonials();
-  const pastTrips = await getRecentCompletedTrips();
+  // Run independently of each other (no shared data dependency) — was
+  // four sequential awaits, so the page waited for each Supabase round
+  // trip in turn before starting the next one instead of overlapping
+  // them, roughly quadrupling time-to-first-byte for no reason.
+  const [{ featured, partners, heroPeek }, destinations, testimonials, pastTrips] =
+    await Promise.all([
+      getRealHomepageTrips(),
+      getActiveDestinations(),
+      getPublishedTestimonials(),
+      getRecentCompletedTrips(),
+    ]);
 
   return (
     <>

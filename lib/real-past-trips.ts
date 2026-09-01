@@ -1,17 +1,23 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicServerClient } from "@/lib/supabase/public-server";
 
 /**
  * Real "Past Trips" homepage showcase — completed trips (status =
  * 'completed', set only via the organizer's explicit "Mark as Completed"
  * action in Host Management, never automatically by date — see migration
- * 035/036's mark_trip_completed()). Server Component only (app/page.tsx),
- * same next/headers bundling reasoning as lib/real-homepage-server.ts.
+ * 035/036's mark_trip_completed()). Server Component only (app/page.tsx).
  *
  * Deliberately does NOT reuse fetchLiveTrips (lib/real-explore-shared.ts) —
  * that helper hardcodes `.in("status", ["live", "in_progress"])` and this
  * needs `status = 'completed'` instead, plus a much thinner shape (no
  * pricing/budget/trust — Past Trips is a proof-of-activity showcase, not
  * a joinable listing).
+ *
+ * Switched from createServerSupabaseClient() (cookie-based — forces the
+ * whole route dynamic, same issue found and fixed for the WhatsApp button
+ * and the "Trips For You"/"Verified Partner Trips" sections) to the
+ * cookie-free public client + unstable_cache: this is the same public
+ * "completed trips" listing for every visitor, no auth.uid() scoping.
  */
 export type PastTrip = {
   id: string;
@@ -23,8 +29,8 @@ export type PastTrip = {
   imgAlt: string;
 };
 
-export async function getRecentCompletedTrips(limit = 6): Promise<PastTrip[]> {
-  const supabase = await createServerSupabaseClient();
+async function fetchRecentCompletedTrips(limit: number): Promise<PastTrip[]> {
+  const supabase = createPublicServerClient();
 
   const { data: trips, error } = await supabase
     .from("trips")
@@ -63,6 +69,12 @@ export async function getRecentCompletedTrips(limit = 6): Promise<PastTrip[]> {
     };
   });
 }
+
+export const getRecentCompletedTrips = unstable_cache(
+  (limit = 6) => fetchRecentCompletedTrips(limit),
+  ["recent-completed-trips"],
+  { revalidate: 60 }
+);
 
 function formatCompletedRange(start: string | null, end: string | null): string {
   if (!start) return "";

@@ -1,24 +1,32 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicServerClient } from "@/lib/supabase/public-server";
 import { fetchLiveTrips } from "@/lib/real-explore-shared";
 import type { FeaturedTrip, PartnerTrip } from "@/components/ui/TripCard";
 
 /**
- * Real homepage trip data (Server Component only — app/page.tsx). Kept
- * separate from lib/real-explore.ts so lib/supabase/server's next/headers
- * import never reaches a client bundle (same reasoning as
- * lib/real-trip-details-server.ts).
+ * Real homepage trip data (Server Component only — app/page.tsx).
  *
  * The homepage's "Trips For You" / hero-peek sections show community
  * trips; "Verified Partner Trips" shows verified_partner-kind trips. Both
  * are simply empty when no real trips of that kind exist yet — no
  * fallback to sample data, per the Aug 23 "not a showcase" instruction.
+ *
+ * Switched from createServerSupabaseClient() (cookie-based, forces the
+ * whole route dynamic — same mistake caught and fixed for the WhatsApp
+ * button in lib/site-settings-server.ts) to the cookie-free public
+ * client: this query has no auth.uid() scoping, it's the same public
+ * trip listing for every anonymous visitor, so there's no reason to pay
+ * a per-request cookies() read for it. unstable_cache lets `/` go back
+ * to being statically served with a short revalidate window instead of
+ * hitting Supabase on every single request.
  */
-export async function getRealHomepageTrips(): Promise<{
-  featured: FeaturedTrip[];
-  partners: PartnerTrip[];
-  heroPeek: FeaturedTrip[];
-}> {
-  const supabase = await createServerSupabaseClient();
+export const getRealHomepageTrips = unstable_cache(
+  async (): Promise<{
+    featured: FeaturedTrip[];
+    partners: PartnerTrip[];
+    heroPeek: FeaturedTrip[];
+  }> => {
+  const supabase = createPublicServerClient();
   const trips = await fetchLiveTrips(supabase, 12);
 
   const community = trips.filter((t) => t.type === "community");
@@ -60,4 +68,7 @@ export async function getRealHomepageTrips(): Promise<{
   }));
 
   return { featured, partners, heroPeek: featured.slice(0, 3) };
-}
+  },
+  ["homepage-trips"],
+  { revalidate: 60 }
+);
