@@ -49,7 +49,7 @@ export function LikeButton({
       onClick={toggle}
       disabled={pending}
       aria-pressed={liked}
-      className={`flex items-center gap-1.5 text-[12px] font-semibold ${liked ? "text-danger" : "text-text-muted hover:text-text-secondary"}`}
+      className={`flex items-center gap-1.5 text-[12px] font-semibold ${liked ? "text-clicks-primary" : "text-text-muted hover:text-clicks-primary"}`}
     >
       <span>{liked ? "❤️" : "🤍"}</span>
       <span>{count}</span>

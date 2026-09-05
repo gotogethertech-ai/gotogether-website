@@ -125,12 +125,12 @@ export function CommentsSection({ clickId }: { clickId: string }) {
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}
           placeholder={user ? "Add a comment…" : "Sign in to comment"}
-          className="flex-1 rounded-full border border-border-input px-3.5 py-2 text-[12.5px] focus:border-primary focus:outline-none"
+          className="flex-1 rounded-full border border-border-input px-3.5 py-2 text-[12.5px] focus:border-clicks-primary focus:outline-none"
         />
         <button
           type="submit"
           disabled={posting || !draft.trim()}
-          className="rounded-full bg-primary px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+          className="rounded-full bg-clicks-primary px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-clicks-primary-dark disabled:opacity-50"
         >
           Post
         </button>

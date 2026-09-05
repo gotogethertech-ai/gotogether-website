@@ -89,14 +89,14 @@ export function ClickDetailClient({ click }: { click: ClickDetail }) {
   return (
     <>
       <Header activePath="/clicks" />
-      <main className="flex-1 bg-surface">
+      <main className="flex-1 bg-clicks-background">
         <div className="mx-auto max-w-[720px] px-6 py-6 max-[599px]:px-0">
           <div className="mb-4 flex items-center justify-between px-6 max-[599px]:px-4">
-            <Link href="/clicks" className="text-sm font-semibold text-text-secondary hover:text-primary">
+            <Link href="/clicks" className="text-sm font-semibold text-text-secondary hover:text-clicks-primary">
               ← Back
             </Link>
             <div className="flex items-center gap-2">
-              <button onClick={handleShare} className="text-[12.5px] font-semibold text-text-secondary hover:text-primary">
+              <button onClick={handleShare} className="text-[12.5px] font-semibold text-text-secondary hover:text-clicks-primary">
                 ↗ Share
               </button>
               {copied && <span className="text-[11px] font-semibold text-trust-fg">Link copied</span>}
@@ -104,7 +104,7 @@ export function ClickDetailClient({ click }: { click: ClickDetail }) {
                 <button
                   onClick={() => requireAuth("report this Click", () => setReportOpen(true))}
                   aria-label="Report this Click"
-                  className="text-[12.5px] font-semibold text-text-secondary hover:text-primary"
+                  className="text-[12.5px] font-semibold text-text-secondary hover:text-clicks-primary"
                 >
                   ⋯
                 </button>
@@ -140,7 +140,7 @@ export function ClickDetailClient({ click }: { click: ClickDetail }) {
                   <button
                     onClick={handleMessage}
                     disabled={startingChat}
-                    className="rounded-full border border-border px-4 py-1.5 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-hover disabled:opacity-60"
+                    className="rounded-full border border-clicks-primary px-4 py-1.5 text-[12.5px] font-semibold text-clicks-primary hover:bg-clicks-background disabled:opacity-60"
                   >
                     {startingChat ? "Opening chat…" : "Message"}
                   </button>
@@ -150,21 +150,23 @@ export function ClickDetailClient({ click }: { click: ClickDetail }) {
                 // Editing a published Click isn't built yet (tracked for a
                 // later phase) — this is a visible placeholder, not a
                 // dead link to a page that doesn't exist.
-                <span className="rounded-full bg-surface-tint px-4 py-1.5 text-[12.5px] font-semibold text-text-muted">This is your Click</span>
+                <span className="rounded-full bg-clicks-background px-4 py-1.5 text-[12.5px] font-semibold text-clicks-text">This is your Click</span>
               )}
             </div>
 
             {chatError && <p className="mb-3 text-[11.5px] font-medium text-danger">{chatError}</p>}
 
             <div className="mb-5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px] text-text-tertiary">
-              {click.destination && <span>📍 {click.destination}</span>}
+              {click.destination && <span className="text-clicks-primary-dark">📍 {click.destination}</span>}
               {dateRange && <span>🗓 {dateRange}</span>}
-              {tripTypeLabel && <span className="rounded-md bg-surface-tint px-2 py-0.5 text-[11px] font-semibold">{tripTypeLabel}</span>}
+              {tripTypeLabel && (
+                <span className="rounded-md bg-clicks-background px-2 py-0.5 text-[11px] font-semibold text-clicks-primary-dark">{tripTypeLabel}</span>
+              )}
             </div>
 
             {click.tripId && click.tripTitle && (
-              <Link href={`/trips/${click.tripId}`} className="mb-5 block rounded-xl border border-border-partner bg-surface-tint px-4 py-2.5 text-[12.5px] text-text-secondary hover:bg-surface-hover">
-                This Click is from: <span className="font-semibold text-primary">{click.tripTitle}</span> →
+              <Link href={`/trips/${click.tripId}`} className="mb-5 block rounded-xl border border-border-partner bg-clicks-background px-4 py-2.5 text-[12.5px] text-text-secondary hover:bg-clicks-highlight/30">
+                This Click is from: <span className="font-semibold text-clicks-primary">{click.tripTitle}</span> →
               </Link>
             )}
 

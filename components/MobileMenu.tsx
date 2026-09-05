@@ -16,6 +16,7 @@ type MobileMenuProps = {
 
 const LOGGED_OUT_ITEMS = [
   { label: "Explore", href: "/explore", primary: true },
+  { label: "Clicks", href: "/clicks" },
   { label: "Destinations", href: "/destinations" },
   { label: "Travel Companies", href: "/travel-companies" },
   { label: "How It Works", href: "/how-it-works" },
@@ -23,6 +24,7 @@ const LOGGED_OUT_ITEMS = [
 
 const LOGGED_IN_PRIMARY = [
   { label: "Explore", href: "/explore", primary: true },
+  { label: "Clicks", href: "/clicks" },
   { label: "My Trips", href: "/my-trips" },
 ];
 
@@ -82,20 +84,25 @@ export function MobileMenu({ open, onClose, user, onLogin }: MobileMenuProps) {
         </div>
 
         <nav className="p-2" aria-label="Mobile">
-          {(user ? LOGGED_IN_PRIMARY : LOGGED_OUT_ITEMS).map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={`block rounded-[10px] px-4 py-3.5 text-[14.5px] font-medium font-sans ${
-                item.primary
-                  ? "bg-[oklch(96%_0.02_255)] font-semibold text-primary"
-                  : ""
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {(user ? LOGGED_IN_PRIMARY : LOGGED_OUT_ITEMS).map((item) => {
+            const isClicks = item.href === "/clicks";
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`block rounded-[10px] px-4 py-3.5 text-[14.5px] font-medium font-sans ${
+                  isClicks
+                    ? "bg-clicks-background font-semibold text-clicks-primary"
+                    : item.primary
+                      ? "bg-[oklch(96%_0.02_255)] font-semibold text-primary"
+                      : ""
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
 
           {user && (
             <>

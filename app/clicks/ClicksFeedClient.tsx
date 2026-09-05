@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { AccentButton } from "@/components/ui/Button";
 import { ClickCard } from "@/components/clicks/ClickCard";
 import { CLICK_TRIP_TYPES } from "@/lib/real-clicks";
 import { getClicksFeedPage, type ClickDiscoveryFilter, type ClickListItem } from "@/lib/real-clicks-feed";
@@ -89,14 +88,19 @@ export function ClicksFeedClient() {
   return (
     <>
       <Header activePath="/clicks" />
-      <main className="flex-1 bg-surface">
+      <main className="flex-1 bg-clicks-background">
         <div className="mx-auto max-w-[720px] px-6 py-8 max-[599px]:px-4">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="font-display text-2xl font-bold">Clicks</h1>
               <p className="text-[13px] text-text-tertiary">Travel stories from real GoTogether trips</p>
             </div>
-            <AccentButton onClick={handleCreateClick}>+ Create Click</AccentButton>
+            <button
+              onClick={handleCreateClick}
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-clicks-primary px-[22px] py-[13px] text-[14.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-clicks-primary-dark font-sans"
+            >
+              + Create Click
+            </button>
           </div>
 
           <form onSubmit={handleSearchSubmit} className="mb-4">
@@ -104,7 +108,7 @@ export function ClicksFeedClient() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search Clicks by destination (e.g. Manali)"
-              className="w-full rounded-full border border-border-input px-4 py-2.5 text-[13px] focus:border-primary focus:outline-none"
+              className="w-full rounded-full border border-border-input bg-surface px-4 py-2.5 text-[13px] focus:border-clicks-primary focus:outline-none"
             />
           </form>
 
@@ -121,7 +125,9 @@ export function ClicksFeedClient() {
                     setActiveFilter(chip.filter);
                   }}
                   className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold ${
-                    active ? "border-primary bg-primary text-white" : "border-border text-text-secondary hover:bg-surface-hover"
+                    active
+                      ? "border-clicks-primary bg-clicks-primary text-white"
+                      : "border-border text-text-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {chip.label}
@@ -133,11 +139,16 @@ export function ClicksFeedClient() {
           {loading ? (
             <div className="py-16 text-center text-[13px] text-text-muted">Loading Clicks…</div>
           ) : items.length === 0 ? (
-            <div className="rounded-2xl bg-surface-tint px-6 py-14 text-center">
+            <div className="rounded-2xl bg-surface px-6 py-14 text-center">
               <p className="mb-4 text-[13.5px] text-text-tertiary">
                 {activeFilter.kind === "all" ? "No Clicks yet — be the first to share a travel story." : "No Clicks match this filter yet."}
               </p>
-              <AccentButton onClick={handleCreateClick}>+ Create Click</AccentButton>
+              <button
+                onClick={handleCreateClick}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-clicks-primary px-[22px] py-[13px] text-[14.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-clicks-primary-dark font-sans"
+              >
+                + Create Click
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-5">
