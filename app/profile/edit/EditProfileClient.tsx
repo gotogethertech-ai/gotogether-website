@@ -51,14 +51,20 @@ function maxDateOfBirth(): string {
  * discarded input, consistent with the project's no-fabricated-data rule.
  */
 export function EditProfileClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  // Derived, not stored: authChecked is true exactly when AuthProvider has
+  // finished its async session hydration AND the resulting session is a
+  // real signed-in user. The `loading` guard is what prevents the login
+  // loop — without it, a signed-in visitor arriving via a full page load
+  // (refresh, direct URL, or the redirect back from /auth/callback) sees
+  // `user` still null and this effect kicks off a real Google sign-in
+  // redirect for someone whose session cookie is already valid.
+  const authChecked = !loading && isLoggedIn;
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("edit your profile", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("edit your profile", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   if (!authChecked || !user) {
     return (

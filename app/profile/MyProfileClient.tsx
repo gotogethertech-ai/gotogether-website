@@ -26,16 +26,15 @@ import { TravelCompanySection } from "@/components/profile/TravelCompanySection"
  * rather than inlining everything here.
  */
 export function MyProfileClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileError, setProfileError] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your profile", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your profile", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

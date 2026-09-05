@@ -15,15 +15,14 @@ import { useAuth, verificationStatusLabel } from "@/lib/auth-context";
  * matching how every other irreversible action site-wide requires one.
  */
 export function SettingsClient() {
-  const { user, isLoggedIn, requireAuth, requireVerification, logout } = useAuth();
+  const { user, isLoggedIn, loading, requireAuth, requireVerification, logout } = useAuth();
   const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const authChecked = !loading && isLoggedIn;
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your settings", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your settings", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [tripReminders, setTripReminders] = useState(true);

@@ -18,16 +18,15 @@ import { AvailabilityDateNotice } from "@/components/AvailabilityDateNotice";
  * 028_saved_trips) via lib/real-saved-trips.ts.
  */
 export function SavedTripsClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [trips, setTrips] = useState<ExploreTrip[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your saved trips", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your saved trips", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

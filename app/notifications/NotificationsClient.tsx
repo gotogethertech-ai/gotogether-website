@@ -23,16 +23,15 @@ import {
  * promotions, etc.) starts inserting rows.
  */
 export function NotificationsClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your notifications", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your notifications", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

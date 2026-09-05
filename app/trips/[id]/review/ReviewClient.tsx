@@ -25,16 +25,15 @@ function initialsFrom(name: string): string {
  * a partial pass.
  */
 export function ReviewClient({ tripId }: { tripId: string }) {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [tripTitle, setTripTitle] = useState("");
   const [people, setPeople] = useState<ReviewableCoTraveller[] | null>(null);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("leave a review", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("leave a review", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

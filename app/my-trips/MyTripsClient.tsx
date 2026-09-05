@@ -35,10 +35,10 @@ type TabKey = "going" | "hosting";
  * hardcoded sample trips anywhere on this page.
  */
 export function MyTripsClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const authChecked = !loading && isLoggedIn;
   const [hostedTrips, setHostedTrips] = useState<HostedTrip[]>([]);
   const [active, setActive] = useState<ActiveTrip[]>([]);
   const [pending, setPending] = useState<PendingRequest[]>([]);
@@ -48,10 +48,9 @@ export function MyTripsClient() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your trips", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your trips", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

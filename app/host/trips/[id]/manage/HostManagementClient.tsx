@@ -59,16 +59,15 @@ function addDays(iso: string, days: number): string {
  * reached via My Trips' "Manage Trip" CTA.
  */
 export function HostManagementClient({ tripId }: { tripId: string }) {
-  const { user, isLoggedIn, requireAuth } = useAuth();
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const authChecked = !loading && isLoggedIn;
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("manage your trip", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("manage your trip", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   const [trip, setTrip] = useState<HostedTrip | null>(null);
   const [pending, setPending] = useState<PendingApplicant[]>([]);

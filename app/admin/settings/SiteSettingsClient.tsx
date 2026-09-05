@@ -98,7 +98,7 @@ export function SiteSettingsClient() {
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="+919876543210"
+              placeholder="+910000000000"
               disabled={!canManage}
               className="mb-1 w-full rounded-lg border border-[oklch(85%_0.005_255)] px-3 py-2 text-[13px] disabled:bg-[oklch(97%_0.003_255)]"
             />

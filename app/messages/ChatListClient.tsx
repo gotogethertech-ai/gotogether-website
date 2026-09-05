@@ -34,11 +34,11 @@ import { slugify } from "@/lib/real-companies";
  * have loaded.
  */
 export function ChatListClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
   const searchParams = useSearchParams();
   const deepLinkRoomId = searchParams.get("room");
 
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const authChecked = !loading && isLoggedIn;
   const [tripChats, setTripChats] = useState<TripChat[]>([]);
   const [directChats, setDirectChats] = useState<DirectChat[]>([]);
   const [listsLoaded, setListsLoaded] = useState(false);
@@ -49,10 +49,9 @@ export function ChatListClient() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your messages", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your messages", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   // Load both conversation lists once, then resolve which room should be
   // active: the ?room= deep link if present and found, else the first

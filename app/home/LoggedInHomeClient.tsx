@@ -30,8 +30,8 @@ import type { TestimonialRow } from "@/lib/testimonials-server";
  * only surfaces the "what's relevant to me right now" summary.
  */
 export function LoggedInHomeClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [featuredTrips, setFeaturedTrips] = useState<FeaturedTrip[]>([]);
   const [partnerTrips, setPartnerTrips] = useState<PartnerTrip[]>([]);
   const [activeHostedTrip, setActiveHostedTrip] = useState<{ tripId: string; title: string; imgSrc: string } | null>(null);
@@ -64,10 +64,9 @@ export function LoggedInHomeClient() {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("see your home", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("see your home", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;

@@ -16,16 +16,15 @@ import type { ProfileData } from "@/lib/profiles-data";
  * MyProfileClient/StatisticsClient.
  */
 export function HistoryClient() {
-  const { user, isLoggedIn, requireAuth } = useAuth();
-  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
+  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const authChecked = !loading && isLoggedIn;
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileError, setProfileError] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) return;
-    requireAuth("view your travel history", () => setAuthChecked(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loading || isLoggedIn) return;
+    requireAuth("view your travel history", () => {});
+  }, [loading, isLoggedIn, requireAuth]);
 
   useEffect(() => {
     if (!user) return;
