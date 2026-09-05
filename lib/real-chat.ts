@@ -22,15 +22,20 @@ export type TripChat = {
   messages: ChatMessage[];
 };
 
-/** A direct (non-trip) chat room — currently only ever a user<->company
- * conversation started via get_or_create_company_chat (migration 052).
- * Kept separate from TripChat (which is keyed by tripId, not roomId) since
- * a direct room has no trip to key off. */
+/** A direct (non-trip) chat room's counterpart — either a company
+ * (started via get_or_create_company_chat, migration 052) or another
+ * traveller (started via get_or_create_direct_chat, migration 064, e.g.
+ * "Message" on a Click). Both are ordinary is_direct chat_rooms rows;
+ * only the "who is this" lookup differs. */
+export type DirectChatCounterpart =
+  | { kind: "company"; id: string; name: string; logoInitial: string }
+  | { kind: "user"; id: string; name: string; avatarUrl: string | null; initials: string };
+
+/** A direct (non-trip) chat room. Kept separate from TripChat (which is
+ * keyed by tripId, not roomId) since a direct room has no trip to key off. */
 export type DirectChat = {
   roomId: string;
-  companyId: string;
-  companyName: string;
-  companyLogoInitial: string;
+  counterpart: DirectChatCounterpart;
   lastMessage: string;
   time: string;
 };
@@ -158,10 +163,10 @@ function logoInitialsFrom(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** One row per direct chat this user has with a company (started via
- * get_or_create_company_chat, migration 052) — every direct room today is
- * a user<->company conversation, since nothing else creates one. Ordered
- * by most recent message first. */
+/** One row per direct chat this user has — either with a company (started
+ * via get_or_create_company_chat, migration 052) or with another
+ * traveller (started via get_or_create_direct_chat, migration 064).
+ * Ordered by most recent message first. */
 export async function getMyDirectChats(userId: string): Promise<DirectChat[]> {
   const supabase = createClient();
 
@@ -189,22 +194,34 @@ export async function getMyDirectChats(userId: string): Promise<DirectChat[]> {
   const otherUserIds = Array.from(new Set(otherUserIdByRoom.values()));
   if (otherUserIds.length === 0) return [];
 
-  const { data: companyLinks } = await supabase
-    .from("company_users")
-    .select("user_id, companies(id, name)")
-    .in("user_id", otherUserIds);
+  const [{ data: companyLinks }, { data: profileRows }] = await Promise.all([
+    supabase.from("company_users").select("user_id, companies(id, name)").in("user_id", otherUserIds),
+    supabase.from("public_user_profiles").select("id, name, initials, avatar_url").in("id", otherUserIds),
+  ]);
   const companyByUserId = new Map(
     (companyLinks ?? []).map((c) => {
       const company = Array.isArray(c.companies) ? c.companies[0] : c.companies;
       return [c.user_id, company] as const;
     })
   );
+  const profileByUserId = new Map((profileRows ?? []).filter((p) => !!p.id).map((p) => [p.id as string, p]));
 
   const results: DirectChat[] = [];
   for (const roomId of directRoomIds) {
     const otherUserId = otherUserIdByRoom.get(roomId);
-    const company = otherUserId ? companyByUserId.get(otherUserId) : null;
-    if (!company) continue; // not a company chat — nothing else creates a direct room today
+    if (!otherUserId) continue;
+
+    const company = companyByUserId.get(otherUserId);
+    const profile = profileByUserId.get(otherUserId);
+    const counterpart: DirectChatCounterpart = company
+      ? { kind: "company", id: company.id, name: company.name, logoInitial: logoInitialsFrom(company.name) }
+      : {
+          kind: "user",
+          id: otherUserId,
+          name: profile?.name ?? "GoTogether traveller",
+          avatarUrl: profile?.avatar_url ?? null,
+          initials: profile?.initials ?? (profile?.name ?? "?").slice(0, 2).toUpperCase(),
+        };
 
     const { data: lastMsgRows } = await supabase
       .from("messages")
@@ -221,15 +238,25 @@ export async function getMyDirectChats(userId: string): Promise<DirectChat[]> {
 
     results.push({
       roomId,
-      companyId: company.id,
-      companyName: company.name,
-      companyLogoInitial: logoInitialsFrom(company.name),
+      counterpart,
       lastMessage: lastMessagePreview,
       time: lastMsg ? formatRelativeTime(lastMsg.created_at) : "",
     });
   }
 
   return results;
+}
+
+/** Starts (or resumes) a direct 1:1 chat with another traveller — used by
+ * the "Message" action on a Click detail page (spec section 11) and, in
+ * future, a profile page. Mirrors getOrCreateCompanyChat's shape
+ * (lib/real-companies.ts) but for a plain user counterpart via
+ * get_or_create_direct_chat (migration 064). */
+export async function getOrCreateDirectUserChat(otherUserId: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_or_create_direct_chat", { p_other_user_id: otherUserId });
+  if (error || !data) throw new Error(error?.message ?? "Couldn't start a chat with this traveller.");
+  return data;
 }
 
 /** The chat_rooms.id for a trip, needed to subscribe/insert since

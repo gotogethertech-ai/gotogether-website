@@ -43,12 +43,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     { data: pendingVerifications },
     { count: frozenScores },
     { count: pendingCompanies },
+    { count: openReports },
   ] = await Promise.all([
     supabase.from("admin_users").select("id", { count: "exact", head: true }).is("deleted_at", null),
     supabase.from("trips").select("id", { count: "exact", head: true }).in("status", ["live", "in_progress"]),
     supabase.from("verifications").select("submitted_at").eq("status", "pending").order("submitted_at", { ascending: true }),
     supabase.from("trust_scores").select("user_id", { count: "exact", head: true }).eq("is_frozen", true),
     supabase.from("companies").select("id", { count: "exact", head: true }).eq("status", "under_review"),
+    // migration 065 — was hardcoded to 0 before the reports table existed.
+    supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
 
   const oldest = pendingVerifications?.[0]?.submitted_at ?? null;
@@ -57,14 +60,71 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalUsers: totalUsers ?? 0,
     activeTrips: activeTrips ?? 0,
     pendingVerifications: pendingVerifications?.length ?? 0,
-    // "Open reports" has no dedicated reports table in this schema yet —
-    // reported here as 0 (honest: nothing to report) rather than a fake
-    // number, until a reports/flags table exists.
-    openReports: 0,
+    openReports: openReports ?? 0,
     oldestPendingVerificationDaysAgo: oldest ? Math.round((Date.now() - new Date(oldest).getTime()) / 86400000) : null,
     frozenTrustScoresAwaitingReview: frozenScores ?? 0,
     pendingCompanyApplications: pendingCompanies ?? 0,
   };
+}
+
+// ── Reports (§17/18, migration 065) ──────────────────────────────────
+
+export type AdminReportRow = Database["public"]["Tables"]["reports"]["Row"];
+
+export type AdminReportListItem = AdminReportRow & {
+  reporterName: string;
+  /** A short human label for the reported content, resolved per
+   * content_type — e.g. a Click's title, a comment's text excerpt. Null
+   * when the content itself has since been hard-deleted or otherwise
+   * couldn't be resolved (the report row itself is never deleted, so
+   * staff can still see who reported what and when). */
+  contentSummary: string | null;
+};
+
+export type ReportsFilter = {
+  status?: Database["public"]["Enums"]["report_status"] | "all";
+  contentType?: Database["public"]["Enums"]["report_content_type"] | "all";
+};
+
+/** Reports queue for admin triage — newest first, pending surfaced by the
+ * default filter. Resolves each report's reporter name and a short
+ * summary of the reported content (Click title / comment excerpt) so
+ * staff don't have to open every row just to see what's being reported. */
+export async function getReports(filter: ReportsFilter = {}): Promise<AdminReportListItem[]> {
+  const supabase = createClient();
+  let query = supabase.from("reports").select("*").order("created_at", { ascending: false }).limit(200);
+  if (filter.status && filter.status !== "all") query = query.eq("status", filter.status);
+  if (filter.contentType && filter.contentType !== "all") query = query.eq("content_type", filter.contentType);
+
+  const { data: rows } = await query;
+  if (!rows || rows.length === 0) return [];
+
+  const reporterIds = Array.from(new Set(rows.map((r) => r.reporter_id)));
+  const { data: reporters } = await supabase.from("users").select("id, name").in("id", reporterIds);
+  const nameById = new Map((reporters ?? []).map((r) => [r.id, r.name]));
+
+  const clickIds = rows.filter((r) => r.content_type === "click").map((r) => r.content_id);
+  const commentIds = rows.filter((r) => r.content_type === "click_comment").map((r) => r.content_id);
+  const [{ data: clicks }, { data: comments }] = await Promise.all([
+    clickIds.length > 0 ? supabase.from("clicks").select("id, title").in("id", clickIds) : Promise.resolve({ data: [] }),
+    commentIds.length > 0 ? supabase.from("click_comments").select("id, content").in("id", commentIds) : Promise.resolve({ data: [] }),
+  ]);
+  const clickTitleById = new Map((clicks ?? []).map((c) => [c.id, c.title]));
+  const commentTextById = new Map((comments ?? []).map((c) => [c.id, c.content]));
+
+  return rows.map((r) => {
+    let contentSummary: string | null = null;
+    if (r.content_type === "click") contentSummary = clickTitleById.get(r.content_id) ?? null;
+    else if (r.content_type === "click_comment") {
+      const text = commentTextById.get(r.content_id);
+      contentSummary = text ? (text.length > 80 ? `${text.slice(0, 80)}…` : text) : null;
+    }
+    return {
+      ...r,
+      reporterName: nameById.get(r.reporter_id) ?? "Unknown",
+      contentSummary,
+    };
+  });
 }
 
 export type RecentAuditEntry = AdminAuditLogRow & { actorName: string | null };
@@ -117,7 +177,15 @@ export async function getUsers(filter: UsersFilter, limit = 50, offset = 0): Pro
   const { data: users, count, error } = await query.range(offset, offset + limit - 1);
   if (error || !users) return { users: [], total: 0 };
 
-  const userIds = users.map((u) => u.id);
+  // admin_users mirrors `users` 1:1 via `select *`, so Postgres reports
+  // every column (including id/account_status/verification_status) as
+  // nullable in the generated types even though a real user row always
+  // has them set — regenerating types (for the new clicks/click_photos
+  // tables) surfaced this pre-existing gap between the DB's honest
+  // nullability and this file's actual invariants. Asserting non-null
+  // here, at the query boundary, keeps that assumption in one place
+  // instead of threading `| null` through the whole admin UI.
+  const userIds = users.map((u) => u.id!);
   const trustByUser = new Map<string, number>();
   const tripCountByUser = new Map<string, number>();
   if (userIds.length > 0) {
@@ -130,7 +198,12 @@ export async function getUsers(filter: UsersFilter, limit = 50, offset = 0): Pro
   }
 
   return {
-    users: users.map((u) => ({ ...u, trustScore: trustByUser.get(u.id) ?? 5, tripCount: tripCountByUser.get(u.id) ?? 0 })),
+    users: users.map((u) => ({
+      ...u,
+      account_status: u.account_status ?? "active",
+      trustScore: trustByUser.get(u.id!) ?? 5,
+      tripCount: tripCountByUser.get(u.id!) ?? 0,
+    })) as AdminUserListItem[],
     total: count ?? 0,
   };
 }
@@ -144,7 +217,12 @@ export async function getUserDetail(userId: string): Promise<AdminUserDetail | n
     supabase.from("trust_scores").select("score, is_frozen").eq("user_id", userId).maybeSingle(),
   ]);
   if (!user) return null;
-  return { ...user, trustScore: trust ? Number(trust.score) : 5, trustFrozen: trust?.is_frozen ?? false };
+  return {
+    ...user,
+    account_status: user.account_status ?? "active",
+    trustScore: trust ? Number(trust.score) : 5,
+    trustFrozen: trust?.is_frozen ?? false,
+  } as AdminUserDetail;
 }
 
 export type AdminUserTripRow = {
@@ -364,7 +442,7 @@ export async function getIdVerifiedUsers(q?: string): Promise<{ id: string; name
   let query = supabase.from("admin_users").select("id, name, phone, email").eq("verification_status", "id_verified").order("name", { ascending: true }).limit(50);
   if (q) query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []) as { id: string; name: string; phone: string | null; email: string | null }[];
 }
 
 /** Any user, regardless of verification status — used for the Create Trip
@@ -375,7 +453,7 @@ export async function getAllUsersForPicker(q?: string): Promise<{ id: string; na
   let query = supabase.from("admin_users").select("id, name, phone, email, verification_status").order("name", { ascending: true }).limit(50);
   if (q) query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []) as { id: string; name: string; phone: string | null; email: string | null; verification_status: string }[];
 }
 
 // ── Companies ─────────────────────────────────────────────────────────

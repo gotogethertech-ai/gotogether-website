@@ -31,7 +31,11 @@ export type AdminCapability =
   | "siteSettings.manage"
   | "auditLog.viewOwn"
   | "auditLog.viewAll"
-  | "decision.reverse";
+  | "decision.reverse"
+  | "report.resolve"
+  | "click.hide"
+  | "click.delete"
+  | "clickComment.remove";
 
 const MODERATOR_CAPABILITIES: AdminCapability[] = [
   "view",
@@ -43,6 +47,9 @@ const MODERATOR_CAPABILITIES: AdminCapability[] = [
   "review.hideRemove",
   "company.recommend",
   "auditLog.viewOwn",
+  "report.resolve",
+  "click.hide",
+  "clickComment.remove",
 ];
 
 const ADMIN_CAPABILITIES: AdminCapability[] = [
@@ -58,6 +65,7 @@ const ADMIN_CAPABILITIES: AdminCapability[] = [
   "siteSettings.manage",
   "auditLog.viewAll",
   "decision.reverse",
+  "click.delete",
 ];
 
 export function isAdminRole(role: string): role is AdminRole {

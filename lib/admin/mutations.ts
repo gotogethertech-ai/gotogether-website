@@ -251,7 +251,10 @@ export const deleteTrip = (tripId: string, reason: string) =>
 export const bulkDeleteTrips = (tripIds: string[], reason: string) =>
   callRpc("admin_bulk_delete_trips", { p_trip_ids: tripIds, p_reason: reason });
 
-export const bulkHideTrips = (tripIds: string[], reason?: string) =>
+// p_reason has no DB-side default (unlike some other admin_* RPCs) — the
+// old hand-maintained types file incorrectly marked this optional, which
+// would have failed at the database if ever called without one.
+export const bulkHideTrips = (tripIds: string[], reason: string) =>
   callRpc("admin_bulk_hide_trips", { p_trip_ids: tripIds, p_reason: reason });
 
 export const removeTripMember = (tripId: string, userId: string, reason: string) =>
@@ -282,6 +285,30 @@ export const removeReview = (reviewId: string, reason: string) =>
 
 export const restoreReview = (reviewId: string, reason?: string) =>
   callRpc("admin_restore_review", { p_review_id: reviewId, p_reason: reason });
+
+// ── Reports & Clicks moderation (Phase 5, migration 065) ──────────────
+// Resolving a report and acting on the reported content are deliberately
+// separate calls (matching the DB's separation of concerns) — an admin
+// typically calls one of the click/comment actions below, then
+// resolveReport to close out the report row itself.
+export const resolveReport = (
+  reportId: string,
+  status: Database["public"]["Enums"]["report_status"],
+  resolutionNote?: string
+) => callRpc("admin_resolve_report", { p_report_id: reportId, p_status: status, p_resolution_note: resolutionNote });
+
+export const hideClick = (clickId: string, reason: string) => callRpc("admin_hide_click", { p_click_id: clickId, p_reason: reason });
+
+export const restoreClick = (clickId: string, reason?: string) =>
+  callRpc("admin_restore_click", { p_click_id: clickId, p_reason: reason });
+
+export const deleteClick = (clickId: string, reason: string) => callRpc("admin_delete_click", { p_click_id: clickId, p_reason: reason });
+
+export const removeClickComment = (commentId: string, reason: string) =>
+  callRpc("admin_remove_click_comment", { p_comment_id: commentId, p_reason: reason });
+
+export const restoreClickComment = (commentId: string, reason?: string) =>
+  callRpc("admin_restore_click_comment", { p_comment_id: commentId, p_reason: reason });
 
 // ── Companies ────────────────────────────────────────────────────────
 export const verifyCompany = (companyId: string, reason?: string) =>
@@ -608,5 +635,9 @@ export const reactivateDestination = (destinationId: string) =>
 // ── Site settings (migration 058) ───────────────────────────────────
 // Key/value settings an admin can edit without a code deploy. First use:
 // the WhatsApp support number for the floating "Need help?" button.
+// The generated type for p_value is `text` (Postgres doesn't distinguish
+// "nullable" in a function arg's reported type), but the RPC genuinely
+// accepts and stores NULL — clearing the WhatsApp number this way is
+// existing, verified behavior — hence the cast rather than a stricter type.
 export const setSiteSetting = (key: string, value: string | null) =>
-  callRpc("admin_set_site_setting", { p_key: key, p_value: value });
+  callRpc("admin_set_site_setting", { p_key: key, p_value: value as string });

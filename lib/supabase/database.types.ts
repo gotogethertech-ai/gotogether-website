@@ -14,7 +14,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -63,6 +63,20 @@ export type Database = {
             foreignKeyName: "audit_logs_actor_id_fkey"
             columns: ["actor_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -90,6 +104,20 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -126,6 +154,233 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: true
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      click_comments: {
+        Row: {
+          click_id: string
+          content: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          click_id: string
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          click_id?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "click_comments_click_id_fkey"
+            columns: ["click_id"]
+            isOneToOne: false
+            referencedRelation: "clicks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      click_likes: {
+        Row: {
+          click_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          click_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          click_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "click_likes_click_id_fkey"
+            columns: ["click_id"]
+            isOneToOne: false
+            referencedRelation: "clicks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "click_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      click_photos: {
+        Row: {
+          click_id: string
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          storage_path: string
+        }
+        Insert: {
+          click_id: string
+          created_at?: string
+          display_order: number
+          id?: string
+          image_url: string
+          storage_path: string
+        }
+        Update: {
+          click_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "click_photos_click_id_fkey"
+            columns: ["click_id"]
+            isOneToOne: false
+            referencedRelation: "clicks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clicks: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          destination: string | null
+          end_date: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["click_status"]
+          story: string
+          title: string
+          trip_id: string | null
+          trip_type: Database["public"]["Enums"]["click_trip_type"] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          destination?: string | null
+          end_date?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["click_status"]
+          story: string
+          title: string
+          trip_id?: string | null
+          trip_type?: Database["public"]["Enums"]["click_trip_type"] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          destination?: string | null
+          end_date?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["click_status"]
+          story?: string
+          title?: string
+          trip_id?: string | null
+          trip_type?: Database["public"]["Enums"]["click_trip_type"] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clicks_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clicks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clicks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clicks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -206,6 +461,20 @@ export type Database = {
             foreignKeyName: "company_trip_records_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_trip_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_trip_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -230,6 +499,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -323,6 +606,20 @@ export type Database = {
             foreignKeyName: "join_requests_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -359,6 +656,20 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -413,6 +724,20 @@ export type Database = {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -454,12 +779,125 @@ export type Database = {
             foreignKeyName: "pending_registrations_activated_user_id_fkey"
             columns: ["activated_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_registrations_activated_user_id_fkey"
+            columns: ["activated_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_registrations_activated_user_id_fkey"
+            columns: ["activated_user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pending_registrations_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_registrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_registrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          content_id: string
+          content_type: Database["public"]["Enums"]["report_content_type"]
+          created_at: string
+          details: string | null
+          id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          content_id: string
+          content_type: Database["public"]["Enums"]["report_content_type"]
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          content_id?: string
+          content_type?: Database["public"]["Enums"]["report_content_type"]
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey"
+            columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -472,8 +910,8 @@ export type Database = {
           created_at: string
           id: string
           rating: number
-          reviewee_id: string | null
           reviewee_company_id: string | null
+          reviewee_id: string | null
           reviewer_display_name: string | null
           reviewer_id: string
           trip_id: string | null
@@ -485,8 +923,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating: number
-          reviewee_id?: string | null
           reviewee_company_id?: string | null
+          reviewee_id?: string | null
           reviewer_display_name?: string | null
           reviewer_id: string
           trip_id?: string | null
@@ -498,8 +936,8 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
-          reviewee_id?: string | null
           reviewee_company_id?: string | null
+          reviewee_id?: string | null
           reviewer_display_name?: string | null
           reviewer_id?: string
           trip_id?: string | null
@@ -508,6 +946,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "reviews_reviewee_company_id_fkey"
+            columns: ["reviewee_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reviews_reviewee_id_fkey"
             columns: ["reviewee_id"]
             isOneToOne: false
@@ -515,10 +974,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_reviewee_company_id_fkey"
-            columns: ["reviewee_company_id"]
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -568,6 +1034,63 @@ export type Database = {
             foreignKeyName: "saved_trips_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_trips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_trips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -605,6 +1128,20 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "testimonials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testimonials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "testimonials_user_id_fkey"
             columns: ["user_id"]
@@ -654,6 +1191,20 @@ export type Database = {
             foreignKeyName: "trip_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -679,6 +1230,7 @@ export type Database = {
           duration_max: number | null
           duration_min: number | null
           end_date: string | null
+          exclusions: string[] | null
           fixed_end_date: string | null
           fixed_start_date: string | null
           gender_restriction: Database["public"]["Enums"]["trip_gender_restriction"]
@@ -686,7 +1238,6 @@ export type Database = {
           inclusions: string[] | null
           itinerary_days: Json | null
           itinerary_pdf_url: string | null
-          exclusions: string[] | null
           kind: Database["public"]["Enums"]["trip_kind"]
           max_age: number | null
           max_group_size: number
@@ -720,6 +1271,7 @@ export type Database = {
           duration_max?: number | null
           duration_min?: number | null
           end_date?: string | null
+          exclusions?: string[] | null
           fixed_end_date?: string | null
           fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
@@ -727,7 +1279,6 @@ export type Database = {
           inclusions?: string[] | null
           itinerary_days?: Json | null
           itinerary_pdf_url?: string | null
-          exclusions?: string[] | null
           kind?: Database["public"]["Enums"]["trip_kind"]
           max_age?: number | null
           max_group_size: number
@@ -761,6 +1312,7 @@ export type Database = {
           duration_max?: number | null
           duration_min?: number | null
           end_date?: string | null
+          exclusions?: string[] | null
           fixed_end_date?: string | null
           fixed_start_date?: string | null
           gender_restriction?: Database["public"]["Enums"]["trip_gender_restriction"]
@@ -768,7 +1320,6 @@ export type Database = {
           inclusions?: string[] | null
           itinerary_days?: Json | null
           itinerary_pdf_url?: string | null
-          exclusions?: string[] | null
           kind?: Database["public"]["Enums"]["trip_kind"]
           max_age?: number | null
           max_group_size?: number
@@ -796,6 +1347,20 @@ export type Database = {
             columns: ["destination_id"]
             isOneToOne: false
             referencedRelation: "destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -831,6 +1396,81 @@ export type Database = {
             foreignKeyName: "trust_scores_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trust_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trust_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_followee_id_fkey"
+            columns: ["followee_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_followee_id_fkey"
+            columns: ["followee_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_followee_id_fkey"
+            columns: ["followee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -962,7 +1602,35 @@ export type Database = {
             foreignKeyName: "verifications_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -974,85 +1642,150 @@ export type Database = {
           },
         ]
       }
-      site_settings: {
-        Row: {
-          key: string
-          value: string | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          key: string
-          value?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          key?: string
-          value?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "site_settings_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       admin_users: {
-        Row: Database["public"]["Tables"]["users"]["Row"]
+        Row: {
+          account_status: Database["public"]["Enums"]["account_status"] | null
+          avatar_url: string | null
+          bio: string | null
+          cities_explored_override: number | null
+          created_at: string | null
+          date_of_birth: string | null
+          deleted_at: string | null
+          drinking_preference: string | null
+          email: string | null
+          gender: string | null
+          id: string | null
+          initials: string | null
+          name: string | null
+          onboarding_completed: boolean | null
+          phone: string | null
+          restricted_until: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          smoking_preference: string | null
+          trips_completed_override: number | null
+          trips_joined_override: number | null
+          trips_organized_override: number | null
+          updated_at: string | null
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
+          avatar_url?: string | null
+          bio?: string | null
+          cities_explored_override?: number | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          drinking_preference?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string | null
+          initials?: string | null
+          name?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          restricted_until?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          smoking_preference?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
+          updated_at?: string | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Update: {
+          account_status?: Database["public"]["Enums"]["account_status"] | null
+          avatar_url?: string | null
+          bio?: string | null
+          cities_explored_override?: number | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          deleted_at?: string | null
+          drinking_preference?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string | null
+          initials?: string | null
+          name?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          restricted_until?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          smoking_preference?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
+          updated_at?: string | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
         Relationships: []
       }
       public_user_profiles: {
         Row: {
-          id: string
-          name: string
-          initials: string | null
           avatar_url: string | null
           bio: string | null
-          verification_status: Database["public"]["Enums"]["verification_status"]
-          created_at: string
-          trips_joined_override: number | null
-          trips_completed_override: number | null
-          trips_organized_override: number | null
           cities_explored_override: number | null
+          created_at: string | null
+          id: string | null
+          initials: string | null
+          name: string | null
+          trips_completed_override: number | null
+          trips_joined_override: number | null
+          trips_organized_override: number | null
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          cities_explored_override?: number | null
+          created_at?: string | null
+          id?: string | null
+          initials?: string | null
+          name?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          cities_explored_override?: number | null
+          created_at?: string | null
+          id?: string | null
+          initials?: string | null
+          name?: string | null
+          trips_completed_override?: number | null
+          trips_joined_override?: number | null
+          trips_organized_override?: number | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Relationships: []
       }
     }
     Functions: {
-      admin_set_site_setting: {
-        Args: { p_key: string; p_value: string | null }
-        Returns: undefined
-      }
-      my_private_profile_fields: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          phone: string | null
-          email: string | null
-          gender: string | null
-          date_of_birth: string | null
-          smoking_preference: string | null
-          drinking_preference: string | null
-        }[]
-      }
-      staff_user_private_fields: {
-        Args: { p_user_ids: string[] }
-        Returns: {
-          id: string
-          phone: string | null
-          email: string | null
-          gender: string | null
-          date_of_birth: string | null
-          smoking_preference: string | null
-          drinking_preference: string | null
-        }[]
+      admin_add_company_trip_record: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_start_date: string
+          p_title: string
+        }
+        Returns: string
       }
       admin_add_trip_member: {
         Args: { p_reason?: string; p_trip_id: string; p_user_id: string }
@@ -1060,6 +1793,14 @@ export type Database = {
       }
       admin_approve_verification: {
         Args: { p_verification_id: string }
+        Returns: undefined
+      }
+      admin_bulk_delete_trips: {
+        Args: { p_reason: string; p_trip_ids: string[] }
+        Returns: undefined
+      }
+      admin_bulk_hide_trips: {
+        Args: { p_reason: string; p_trip_ids: string[] }
         Returns: undefined
       }
       admin_close_trip_registrations: {
@@ -1110,12 +1851,8 @@ export type Database = {
         Args: { p_destination_id: string }
         Returns: undefined
       }
-      admin_bulk_delete_trips: {
-        Args: { p_reason: string; p_trip_ids: string[] }
-        Returns: undefined
-      }
-      admin_bulk_hide_trips: {
-        Args: { p_reason?: string; p_trip_ids: string[] }
+      admin_delete_click: {
+        Args: { p_click_id: string; p_reason: string }
         Returns: undefined
       }
       admin_delete_trip: {
@@ -1128,6 +1865,10 @@ export type Database = {
       }
       admin_force_cancel_trip: {
         Args: { p_reason: string; p_trip_id: string }
+        Returns: undefined
+      }
+      admin_hide_click: {
+        Args: { p_click_id: string; p_reason: string }
         Returns: undefined
       }
       admin_hide_review: {
@@ -1157,8 +1898,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_remove_click_comment: {
+        Args: { p_comment_id: string; p_reason: string }
+        Returns: undefined
+      }
       admin_remove_company: {
         Args: { p_company_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_remove_company_trip_record: {
+        Args: { p_record_id: string }
         Returns: undefined
       }
       admin_remove_review: {
@@ -1177,12 +1926,32 @@ export type Database = {
         Args: { p_reason?: string; p_trip_id: string }
         Returns: undefined
       }
+      admin_resolve_report: {
+        Args: {
+          p_report_id: string
+          p_resolution_note?: string
+          p_status: Database["public"]["Enums"]["report_status"]
+        }
+        Returns: undefined
+      }
+      admin_restore_click: {
+        Args: { p_click_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      admin_restore_click_comment: {
+        Args: { p_comment_id: string; p_reason?: string }
+        Returns: undefined
+      }
       admin_restore_review: {
         Args: { p_reason?: string; p_review_id: string }
         Returns: undefined
       }
       admin_restrict_user: {
         Args: { p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_set_site_setting: {
+        Args: { p_key: string; p_value: string }
         Returns: undefined
       }
       admin_set_trust_score: {
@@ -1199,6 +1968,18 @@ export type Database = {
       }
       admin_unhide_trip: {
         Args: { p_reason?: string; p_trip_id: string }
+        Returns: undefined
+      }
+      admin_update_company: {
+        Args: {
+          p_clear_counsellor_phone?: boolean
+          p_company_id: string
+          p_contact_email?: string
+          p_counsellor_phone?: string
+          p_gst_number?: string
+          p_name?: string
+          p_registration_number?: string
+        }
         Returns: undefined
       }
       admin_update_destination: {
@@ -1282,10 +2063,10 @@ export type Database = {
       }
       admin_write_review: {
         Args: {
-          p_comment: string
-          p_rating: number
-          p_reviewee_id?: string
+          p_comment?: string
+          p_rating?: number
           p_reviewee_company_id?: string
+          p_reviewee_id?: string
           p_reviewer_display_name?: string
           p_reviewer_id?: string
           p_trip_id?: string
@@ -1293,45 +2074,33 @@ export type Database = {
         }
         Returns: string
       }
-      admin_update_company: {
-        Args: {
-          p_company_id: string
-          p_name?: string
-          p_contact_email?: string
-          p_registration_number?: string
-          p_gst_number?: string
-          p_counsellor_phone?: string
-          p_clear_counsellor_phone?: boolean
-        }
-        Returns: undefined
-      }
+      can_act_as_member: { Args: never; Returns: boolean }
+      check_comment_rate_limit: { Args: never; Returns: boolean }
       get_or_create_company_chat: {
         Args: { p_company_id: string }
         Returns: string
       }
-      admin_add_company_trip_record: {
-        Args: {
-          p_company_id: string
-          p_title: string
-          p_start_date: string
-          p_end_date?: string
-        }
+      get_or_create_direct_chat: {
+        Args: { p_other_user_id: string }
         Returns: string
       }
-      admin_remove_company_trip_record: {
-        Args: { p_record_id: string }
-        Returns: undefined
-      }
-      can_act_as_member: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      mark_trip_completed: { Args: { p_trip_id: string }; Returns: undefined }
+      my_chat_room_ids: { Args: never; Returns: string[] }
+      my_private_profile_fields: {
+        Args: never
+        Returns: {
+          date_of_birth: string
+          drinking_preference: string
+          email: string
+          gender: string
+          phone: string
+          smoking_preference: string
+        }[]
+      }
+      notify_stale_live_trips: { Args: never; Returns: undefined }
       recompute_trust_score: {
         Args: { target_user_id: string }
-        Returns: undefined
-      }
-      mark_trip_completed: {
-        Args: {
-          p_trip_id: string
-        }
         Returns: undefined
       }
       register_company: {
@@ -1342,6 +2111,27 @@ export type Database = {
           p_registration_number?: string
         }
         Returns: string
+      }
+      report_content: {
+        Args: {
+          p_content_id: string
+          p_content_type: Database["public"]["Enums"]["report_content_type"]
+          p_details?: string
+          p_reason: Database["public"]["Enums"]["report_reason"]
+        }
+        Returns: string
+      }
+      staff_user_private_fields: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          date_of_birth: string
+          drinking_preference: string
+          email: string
+          gender: string
+          id: string
+          phone: string
+          smoking_preference: string
+        }[]
       }
       submit_trip_review: {
         Args: {
@@ -1367,6 +2157,20 @@ export type Database = {
     Enums: {
       account_status: "active" | "restricted" | "suspended"
       cancelled_by_role: "organizer" | "admin" | "system"
+      click_status: "draft" | "published" | "hidden" | "deleted"
+      click_trip_type:
+        | "backpacking"
+        | "trekking"
+        | "road_trip"
+        | "solo"
+        | "friends"
+        | "family"
+        | "adventure"
+        | "weekend"
+        | "nature"
+        | "beach"
+        | "cultural"
+        | "other"
       company_status: "under_review" | "verified" | "suspended"
       join_request_status:
         | "pending"
@@ -1386,6 +2190,23 @@ export type Database = {
         | "verification_decided"
         | "attendance_reminder"
         | "trip_completion_reminder"
+        | "new_follower"
+        | "click_liked"
+        | "click_commented"
+      report_content_type:
+        | "click"
+        | "click_comment"
+        | "trip"
+        | "review"
+        | "user"
+      report_reason:
+        | "spam"
+        | "harassment"
+        | "inappropriate_content"
+        | "misinformation"
+        | "safety_concern"
+        | "other"
+      report_status: "pending" | "reviewed" | "actioned" | "dismissed"
       review_visibility: "published" | "hidden" | "removed"
       trip_gender_restriction: "any" | "women_only" | "men_only"
       trip_kind: "community" | "verified_partner"
@@ -1421,12 +2242,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1450,11 +2271,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1475,11 +2296,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1500,11 +2321,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1517,11 +2338,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1535,6 +2356,21 @@ export const Constants = {
     Enums: {
       account_status: ["active", "restricted", "suspended"],
       cancelled_by_role: ["organizer", "admin", "system"],
+      click_status: ["draft", "published", "hidden", "deleted"],
+      click_trip_type: [
+        "backpacking",
+        "trekking",
+        "road_trip",
+        "solo",
+        "friends",
+        "family",
+        "adventure",
+        "weekend",
+        "nature",
+        "beach",
+        "cultural",
+        "other",
+      ],
       company_status: ["under_review", "verified", "suspended"],
       join_request_status: [
         "pending",
@@ -1555,7 +2391,20 @@ export const Constants = {
         "verification_decided",
         "attendance_reminder",
         "trip_completion_reminder",
+        "new_follower",
+        "click_liked",
+        "click_commented",
       ],
+      report_content_type: ["click", "click_comment", "trip", "review", "user"],
+      report_reason: [
+        "spam",
+        "harassment",
+        "inappropriate_content",
+        "misinformation",
+        "safety_concern",
+        "other",
+      ],
+      report_status: ["pending", "reviewed", "actioned", "dismissed"],
       review_visibility: ["published", "hidden", "removed"],
       trip_gender_restriction: ["any", "women_only", "men_only"],
       trip_kind: ["community", "verified_partner"],
