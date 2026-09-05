@@ -61,6 +61,16 @@
   --header-height-mobile: 56px;
   --content-max-width: 1280px;
   --section-max-width: 1200px;
+
+  /* Clicks feature accent — scoped to the Clicks UI only (feed, detail,
+     create flow, cards, comments, follow/like/report). Does not replace
+     or alter the global GoTogether brand tokens above; every other
+     surface keeps --color-primary/--color-accent unchanged. */
+  --clicks-primary: #e86a5b;
+  --clicks-primary-dark: #c94f43;
+  --clicks-background: #fff7f3;
+  --clicks-highlight: #f4b183;
+  --clicks-text: #292524;
 }
 
 @theme inline {
@@ -98,6 +108,12 @@
   --color-tile-blue: var(--color-tile-blue);
   --color-tile-teal: var(--color-tile-teal);
   --color-tile-orange: var(--color-tile-orange);
+
+  --color-clicks-primary: var(--clicks-primary);
+  --color-clicks-primary-dark: var(--clicks-primary-dark);
+  --color-clicks-background: var(--clicks-background);
+  --color-clicks-highlight: var(--clicks-highlight);
+  --color-clicks-text: var(--clicks-text);
 
   --font-sans: "Roboto";
   --font-display: "Google Sans Text";

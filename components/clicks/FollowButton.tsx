@@ -54,8 +54,8 @@ export function FollowButton({ targetUserId }: { targetUserId: string }) {
       disabled={pending}
       className={
         following
-          ? "rounded-full border border-border px-4 py-1.5 text-[12.5px] font-semibold text-text-secondary hover:bg-surface-hover"
-          : "rounded-full bg-primary px-4 py-1.5 text-[12.5px] font-semibold text-white hover:opacity-90"
+          ? "rounded-full border border-clicks-primary px-4 py-1.5 text-[12.5px] font-semibold text-clicks-primary hover:bg-clicks-background"
+          : "rounded-full bg-clicks-primary px-4 py-1.5 text-[12.5px] font-semibold text-white hover:bg-clicks-primary-dark"
       }
     >
       {following ? "Following" : "Follow"}

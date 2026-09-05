@@ -61,7 +61,7 @@ export function ReportModal({
             </p>
             <button
               onClick={onClose}
-              className="w-full rounded-full bg-primary py-2.5 text-[12.5px] font-semibold text-white hover:opacity-90"
+              className="w-full rounded-full bg-clicks-primary py-2.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-clicks-primary-dark"
             >
               Done
             </button>
@@ -77,7 +77,7 @@ export function ReportModal({
 
             <div className="mb-4 flex flex-col gap-1.5">
               {REPORT_REASONS.map((r) => (
-                <label key={r.value} className="flex items-center gap-2.5 rounded-lg border border-border-input px-3 py-2.5 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-[oklch(96%_0.03_255)]">
+                <label key={r.value} className="flex items-center gap-2.5 rounded-lg border border-border-input px-3 py-2.5 text-[12.5px] has-[:checked]:border-clicks-primary has-[:checked]:bg-clicks-background">
                   <input
                     type="radio"
                     name="report-reason"
@@ -96,7 +96,7 @@ export function ReportModal({
               placeholder="Additional details (optional)"
               maxLength={1000}
               rows={3}
-              className="mb-4 w-full resize-none rounded-lg border border-border-input px-3 py-2 text-[12.5px] outline-none focus:border-primary"
+              className="mb-4 w-full resize-none rounded-lg border border-border-input px-3 py-2 text-[12.5px] outline-none focus:border-clicks-primary"
             />
 
             {error && <p className="mb-3 text-[11.5px] font-medium text-danger">{error}</p>}
@@ -108,7 +108,7 @@ export function ReportModal({
               <button
                 type="submit"
                 disabled={submitting || !reason}
-                className="rounded-full bg-primary px-4 py-2 text-[12.5px] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                className="rounded-full bg-clicks-primary px-4 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-clicks-primary-dark disabled:opacity-50"
               >
                 {submitting ? "Submitting…" : "Submit report"}
               </button>

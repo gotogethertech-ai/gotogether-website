@@ -90,6 +90,7 @@ export function Header({
   const isExploreActive = activePath === "/explore";
   const isMyTripsActive = activePath === "/my-trips";
   const isDestinationsActive = activePath === "/destinations";
+  const isClicksActive = activePath === "/clicks";
   const isSavedTripsActive = activePath === "/saved-trips";
 
   return (
@@ -140,6 +141,19 @@ export function Header({
             <NavLink href="/destinations" active={isDestinationsActive}>
               Destinations
             </NavLink>
+            {/* Clicks nav item uses its own coral accent (Clicks color
+                theme brief), not the site's primary-blue NavLink style —
+                scoped to this one entry only. */}
+            <Link
+              href="/clicks"
+              className={`rounded-full px-3 py-1 text-sm font-medium font-sans transition-colors ${
+                isClicksActive
+                  ? "bg-clicks-primary font-semibold text-white"
+                  : "bg-clicks-background text-clicks-primary hover:bg-clicks-highlight/40"
+              }`}
+            >
+              Clicks
+            </Link>
             {user && (
               <>
                 <NavLink href="/my-trips" active={isMyTripsActive}>

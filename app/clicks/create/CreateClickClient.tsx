@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { PrimaryButton } from "@/components/ui/Button";
 import {
   CLICK_MAX_PHOTOS,
   CLICK_PHOTO_MAX_BYTES,
@@ -62,7 +61,7 @@ export function CreateClickClient() {
   if (!authChecked || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface">
-        <button onClick={() => router.push("/")} className="text-sm font-semibold text-text-secondary hover:text-primary">
+        <button onClick={() => router.push("/")} className="text-sm font-semibold text-text-secondary hover:text-clicks-primary">
           ← Back to GoTogether
         </button>
       </div>
@@ -225,10 +224,10 @@ function CreateClickFlow({ userId }: { userId: string }) {
   const uploadedCount = photos.filter((p) => !p.uploading).length;
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-2xl bg-clicks-background px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">Create Click</h1>
-        <button onClick={() => router.back()} className="text-sm font-semibold text-text-secondary hover:text-primary">
+        <button onClick={() => router.back()} className="text-sm font-semibold text-text-secondary hover:text-clicks-primary">
           Cancel
         </button>
       </div>
@@ -241,7 +240,7 @@ function CreateClickFlow({ userId }: { userId: string }) {
               type="button"
               onClick={() => setStep(s)}
               className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-[11.5px] font-bold ${
-                i <= stepIndex ? "bg-primary text-white" : "bg-surface-tint text-text-muted"
+                i <= stepIndex ? "bg-clicks-primary text-white" : "bg-surface-tint text-text-muted"
               }`}
             >
               {i + 1}
@@ -287,7 +286,7 @@ function CreateClickFlow({ userId }: { userId: string }) {
           type="button"
           disabled={stepIndex === 0}
           onClick={() => setStep(STEP_ORDER[stepIndex - 1])}
-          className="text-sm font-semibold text-text-secondary hover:text-primary disabled:cursor-default disabled:opacity-0"
+          className="text-sm font-semibold text-text-secondary hover:text-clicks-primary disabled:cursor-default disabled:opacity-0"
         >
           ← Back
         </button>
@@ -306,14 +305,19 @@ function CreateClickFlow({ userId }: { userId: string }) {
               type="button"
               disabled={step === "photos" && uploadedCount === 0}
               onClick={() => setStep(STEP_ORDER[stepIndex + 1])}
-              className="rounded-full bg-primary px-6 py-2.5 text-[13px] font-semibold text-white hover:opacity-90 disabled:cursor-default disabled:opacity-40"
+              className="rounded-full bg-clicks-primary px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-clicks-primary-dark disabled:cursor-default disabled:opacity-40"
             >
               Continue
             </button>
           ) : (
-            <PrimaryButton onClick={handlePublish} disabled={saving} className="w-auto px-6 py-2.5 text-[13px]">
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={saving}
+              className="w-auto rounded-full bg-clicks-primary px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-clicks-primary-dark disabled:opacity-60"
+            >
               {saving ? "Publishing…" : "Publish"}
-            </PrimaryButton>
+            </button>
           )}
         </div>
       </div>
@@ -359,7 +363,7 @@ function PhotosStep({
         type="button"
         disabled={creatingDraft || photos.length >= CLICK_MAX_PHOTOS}
         onClick={() => fileInputRef.current?.click()}
-        className="mb-5 flex h-32 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border text-[13px] font-semibold text-text-tertiary hover:border-primary hover:text-primary disabled:cursor-default disabled:opacity-50"
+        className="mb-5 flex h-32 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border text-[13px] font-semibold text-text-tertiary hover:border-clicks-primary hover:text-clicks-primary disabled:cursor-default disabled:opacity-50"
       >
         {creatingDraft ? "Starting…" : photos.length === 0 ? "+ Choose photos from your gallery" : "+ Add more photos"}
       </button>
@@ -380,7 +384,7 @@ function PhotosStep({
                 <div className="absolute inset-0 flex items-center justify-center text-[10.5px] font-semibold text-text-secondary">Uploading…</div>
               )}
               {i === 0 && !photo.uploading && (
-                <span className="absolute top-1.5 left-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[9.5px] font-bold text-white">Cover</span>
+                <span className="absolute top-1.5 left-1.5 rounded-md bg-clicks-primary px-1.5 py-0.5 text-[9.5px] font-bold text-white">Cover</span>
               )}
               {!photo.uploading && (
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/50 px-1.5 py-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -421,7 +425,7 @@ function StoryStep({
           onChange={(e) => onChange({ title: e.target.value })}
           maxLength={CLICK_TITLE_MAX}
           placeholder="My 5 Days in Spiti Valley"
-          className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-primary focus:outline-none"
+          className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-clicks-primary focus:outline-none"
         />
         <p className="mt-1 text-right text-[10.5px] text-text-muted">
           {fields.title.length}/{CLICK_TITLE_MAX}
@@ -436,7 +440,7 @@ function StoryStep({
           maxLength={CLICK_STORY_MAX}
           rows={10}
           placeholder="I had been planning this trip for months…"
-          className="w-full resize-y rounded-xl border border-border-input px-4 py-3 text-[14px] leading-relaxed focus:border-primary focus:outline-none"
+          className="w-full resize-y rounded-xl border border-border-input px-4 py-3 text-[14px] leading-relaxed focus:border-clicks-primary focus:outline-none"
         />
       </div>
     </div>
@@ -462,7 +466,7 @@ function TripInfoStep({
           value={fields.destination}
           onChange={(e) => onChange({ destination: e.target.value })}
           placeholder="Spiti Valley, Himachal Pradesh"
-          className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-primary focus:outline-none"
+          className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-clicks-primary focus:outline-none"
         />
       </div>
 
@@ -473,7 +477,7 @@ function TripInfoStep({
             type="date"
             value={fields.startDate ?? ""}
             onChange={(e) => onChange({ startDate: e.target.value || null })}
-            className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-clicks-primary focus:outline-none"
           />
         </div>
         <div className="flex-1">
@@ -482,7 +486,7 @@ function TripInfoStep({
             type="date"
             value={fields.endDate ?? ""}
             onChange={(e) => onChange({ endDate: e.target.value || null })}
-            className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border-input px-4 py-3 text-[14px] focus:border-clicks-primary focus:outline-none"
           />
         </div>
       </div>
@@ -496,7 +500,9 @@ function TripInfoStep({
               type="button"
               onClick={() => onChange({ tripType: fields.tripType === t.value ? null : (t.value as ClickTripType) })}
               className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold ${
-                fields.tripType === t.value ? "border-primary bg-primary text-white" : "border-border text-text-secondary hover:bg-surface-hover"
+                fields.tripType === t.value
+                  ? "border-clicks-primary bg-clicks-primary text-white"
+                  : "border-border text-text-secondary hover:bg-surface-hover"
               }`}
             >
               {t.label}

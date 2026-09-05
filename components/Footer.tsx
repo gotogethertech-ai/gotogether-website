@@ -11,6 +11,7 @@ const FOOTER_GROUPS: {
     ariaLabel: "Discover",
     links: [
       { label: "Explore Trips", href: "/explore" },
+      { label: "Clicks", href: "/clicks" },
       { label: "Destinations", href: "/destinations" },
       { label: "How It Works", href: "/how-it-works" },
       { label: "Travel Companies", href: "/travel-companies" },

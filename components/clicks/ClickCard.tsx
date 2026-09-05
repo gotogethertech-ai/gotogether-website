@@ -53,21 +53,23 @@ export function ClickCard({ click }: { click: ClickListItem }) {
 
       <div className="p-3.5">
         <Link href={`/clicks/${click.id}`}>
-          <h3 className="mb-1 text-[15px] font-bold hover:text-primary">{click.title}</h3>
+          <h3 className="mb-1 text-[15px] font-bold hover:text-clicks-primary">{click.title}</h3>
         </Link>
-        {click.destination && <div className="mb-1.5 text-[11.5px] text-text-tertiary">📍 {click.destination}</div>}
+        {click.destination && (
+          <div className="mb-1.5 text-[11.5px] text-clicks-primary-dark">📍 {click.destination}</div>
+        )}
         {excerpt && <p className="mb-3 text-[12.5px] leading-relaxed text-text-secondary">{excerpt}</p>}
 
         <div className="flex items-center gap-4 text-[12px] text-text-muted">
-          <Link href={`/clicks/${click.id}`} className="flex items-center gap-1.5 hover:text-text-secondary">
+          <Link href={`/clicks/${click.id}`} className="flex items-center gap-1.5 hover:text-clicks-primary">
             <span>❤️</span>
             <span>{click.likeCount}</span>
           </Link>
-          <Link href={`/clicks/${click.id}`} className="flex items-center gap-1.5 hover:text-text-secondary">
+          <Link href={`/clicks/${click.id}`} className="flex items-center gap-1.5 hover:text-clicks-primary">
             <span>💬</span>
             <span>{click.commentCount}</span>
           </Link>
-          <span className="ml-auto">↗ Share</span>
+          <span className="ml-auto hover:text-clicks-primary">↗ Share</span>
         </div>
       </div>
     </article>
