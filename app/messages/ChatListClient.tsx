@@ -19,14 +19,16 @@ import { slugify } from "@/lib/real-companies";
 
 /**
  * Messages — two-pane layout: conversation list (trip group chats +
- * direct company chats) + active thread. Group chats come from real
+ * direct chats) + active thread. Group chats come from real
  * chat_rooms/chat_participants/messages tables (migration 013); direct
- * chats are user<->company conversations started via
+ * chats are either user<->company conversations started via
  * get_or_create_company_chat (migration 052, "Message [Company]" on a
- * partner trip's page) — both are ordinary chat_rooms rows, so the same
- * message-loading/send/subscribe plumbing (lib/real-chat.ts) works for
- * either kind. Everything below is keyed by roomId, not tripId, since a
- * direct chat has no trip.
+ * partner trip's page) or user<->user conversations started via
+ * get_or_create_direct_chat (migration 064, "Message" on a Click) —
+ * distinguished by DirectChat.counterpart.kind. All are ordinary
+ * chat_rooms rows, so the same message-loading/send/subscribe plumbing
+ * (lib/real-chat.ts) works for every kind. Everything below is keyed by
+ * roomId, not tripId, since a direct chat has no trip.
  *
  * `?room=<id>` deep-links straight into a specific conversation (used by
  * the "Message company" button on a partner trip page) — resolved against
@@ -34,11 +36,11 @@ import { slugify } from "@/lib/real-companies";
  * have loaded.
  */
 export function ChatListClient() {
-  const { user, isLoggedIn, loading, requireAuth } = useAuth();
+  const { user, isLoggedIn, requireAuth } = useAuth();
   const searchParams = useSearchParams();
   const deepLinkRoomId = searchParams.get("room");
 
-  const authChecked = !loading && isLoggedIn;
+  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
   const [tripChats, setTripChats] = useState<TripChat[]>([]);
   const [directChats, setDirectChats] = useState<DirectChat[]>([]);
   const [listsLoaded, setListsLoaded] = useState(false);
@@ -49,9 +51,10 @@ export function ChatListClient() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (loading || isLoggedIn) return;
-    requireAuth("view your messages", () => {});
-  }, [loading, isLoggedIn, requireAuth]);
+    if (isLoggedIn) return;
+    requireAuth("view your messages", () => setAuthChecked(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load both conversation lists once, then resolve which room should be
   // active: the ?room= deep link if present and found, else the first
@@ -214,7 +217,7 @@ export function ChatListClient() {
                 <>
                   <div className="border-b border-border-divider px-5 py-3.5">
                     <div className="text-[15px] font-bold">
-                      {activeTripChat?.title ?? activeDirectChat?.companyName}
+                      {activeTripChat?.title ?? directCounterpartName(activeDirectChat)}
                     </div>
                     <div className="text-[11px] text-text-muted">
                       {activeTripChat ? (
@@ -224,14 +227,21 @@ export function ChatListClient() {
                             View Trip
                           </Link>
                         </>
-                      ) : (
+                      ) : activeDirectChat?.counterpart.kind === "company" ? (
                         <Link
-                          href={`/travel-companies/${encodeURIComponent(slugify(activeDirectChat!.companyName))}`}
+                          href={`/travel-companies/${encodeURIComponent(slugify(activeDirectChat.counterpart.name))}`}
                           className="font-semibold text-primary hover:underline"
                         >
                           View Company
                         </Link>
-                      )}
+                      ) : activeDirectChat ? (
+                        <Link
+                          href={`/profile/${activeDirectChat.counterpart.id}`}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          View Profile
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
 
@@ -239,7 +249,7 @@ export function ChatListClient() {
                     {messages.length === 0 ? (
                       <p className="text-[12.5px] text-text-tertiary">
                         {activeDirectChat
-                          ? `No messages yet — ask ${activeDirectChat.companyName} about this trip.`
+                          ? `No messages yet — say hello to ${directCounterpartName(activeDirectChat)}.`
                           : "No messages yet — say hello to the group."}
                       </p>
                     ) : (
@@ -268,7 +278,7 @@ export function ChatListClient() {
                     <input
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
-                      placeholder={activeDirectChat ? `Message ${activeDirectChat.companyName}...` : "Message the group..."}
+                      placeholder={activeDirectChat ? `Message ${directCounterpartName(activeDirectChat)}...` : "Message the group..."}
                       className="flex-1 rounded-full border border-border-input bg-surface-tint px-4 py-2.5 text-[12.5px] outline-none focus:border-primary font-sans"
                     />
                     <button
@@ -292,6 +302,10 @@ export function ChatListClient() {
       </main>
     </>
   );
+}
+
+function directCounterpartName(chat: DirectChat | null): string {
+  return chat?.counterpart.name ?? "";
 }
 
 function TripConversationRow({
@@ -349,21 +363,32 @@ function DirectConversationRow({
   active: boolean;
   onClick: () => void;
 }) {
+  const { counterpart } = chat;
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-3 rounded-xl px-2 py-2.5 text-left ${active ? "bg-[oklch(94%_0.05_255)]" : "hover:bg-surface-hover"}`}
     >
-      <div
-        className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface-avatar text-[13px] font-bold text-primary"
-        style={{ width: 44, height: 44 }}
-        aria-hidden="true"
-      >
-        {chat.companyLogoInitial}
-      </div>
+      {counterpart.kind === "user" && counterpart.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={counterpart.avatarUrl}
+          alt=""
+          className="h-11 w-11 flex-none rounded-xl object-cover"
+          style={{ width: 44, height: 44 }}
+        />
+      ) : (
+        <div
+          className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-surface-avatar text-[13px] font-bold text-primary"
+          style={{ width: 44, height: 44 }}
+          aria-hidden="true"
+        >
+          {counterpart.kind === "company" ? counterpart.logoInitial : counterpart.initials}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[13px] font-bold">{chat.companyName}</span>
+          <span className="truncate text-[13px] font-bold">{counterpart.name}</span>
           <span className="flex-none text-[10px] text-text-muted">{chat.time}</span>
         </div>
         <span className="block truncate text-[11.5px] text-text-muted">{chat.lastMessage}</span>

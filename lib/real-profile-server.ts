@@ -93,20 +93,27 @@ export async function getRealProfileByIdServer(userId: string): Promise<ProfileD
       .order("created_at", { ascending: false }),
   ]);
 
-  if (!row) return null;
+  if (!row || !row.id) return null;
+  // public_user_profiles mirrors users via `select *`, so Postgres reports
+  // id/name as nullable in generated types even though every real user row
+  // has them (id is the primary key) — the guard above already rules out
+  // the only case that'd matter, this just carries that past the object
+  // literal below for TypeScript's narrowing.
+  const id: string = row.id;
 
   const memberSince = row.created_at ? MONTH_YEAR.format(new Date(row.created_at)) : "";
   const reviews = shapeReviews(reviewRows);
+  const name = row.name ?? "";
 
   return {
-    slug: row.id,
-    name: row.name,
-    initials: row.initials ?? initialsFrom(row.name),
+    slug: id,
+    name,
+    initials: row.initials ?? initialsFrom(name),
     avatarUrl: row.avatar_url,
     city: "",
     memberSince,
     bio: row.bio ?? "",
-    verifications: verificationBadges(row.verification_status),
+    verifications: verificationBadges(row.verification_status ?? "unverified"),
     trustScore: Number(trust?.score ?? 5),
     reviewCount: reviews.length,
     tripsCompleted: row.trips_completed_override ?? 0,

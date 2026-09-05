@@ -102,7 +102,7 @@ export function TripsListClient() {
         await bulkDeleteTrips(ids, reason);
         announce(`${ids.length} trip${ids.length === 1 ? "" : "s"} deleted.`);
       } else {
-        await bulkHideTrips(ids, reason || undefined);
+        await bulkHideTrips(ids, reason);
         announce(`${ids.length} trip${ids.length === 1 ? "" : "s"} hidden.`);
       }
       setSelected(new Set());

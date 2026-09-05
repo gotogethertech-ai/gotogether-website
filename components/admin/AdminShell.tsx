@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getPendingVerifications } from "@/lib/admin/data";
+import { getPendingVerifications, getReports } from "@/lib/admin/data";
 
 /**
  * Admin panel shell — persistent sidebar + top identity, per the design
@@ -19,6 +19,7 @@ const NAV_ITEMS: { href: string; label: string; icon: string }[] = [
   { href: "/admin", label: "Dashboard", icon: "▦" },
   { href: "/admin/users", label: "Users", icon: "◔" },
   { href: "/admin/verification", label: "Verification", icon: "✓" },
+  { href: "/admin/reports", label: "Reports", icon: "⚑" },
   { href: "/admin/trips", label: "Trips", icon: "◎" },
   { href: "/admin/companies", label: "Companies", icon: "▤" },
   { href: "/admin/destinations", label: "Destinations", icon: "◈" },
@@ -31,11 +32,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [pendingVerificationCount, setPendingVerificationCount] = useState<number | null>(null);
+  const [pendingReportCount, setPendingReportCount] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     getPendingVerifications().then((rows) => {
       if (!cancelled) setPendingVerificationCount(rows.length);
+    });
+    getReports({ status: "pending" }).then((rows) => {
+      if (!cancelled) setPendingReportCount(rows.length);
     });
     return () => {
       cancelled = true;
@@ -44,6 +49,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const badges: Partial<Record<string, number>> = {
     "/admin/verification": pendingVerificationCount ?? 0,
+    "/admin/reports": pendingReportCount ?? 0,
   };
 
   return (
