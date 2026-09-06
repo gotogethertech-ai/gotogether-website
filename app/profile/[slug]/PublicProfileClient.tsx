@@ -14,6 +14,8 @@ import {
   ReviewsSection,
   TravelHistorySection,
 } from "@/components/profile/ProfileSections";
+import { ClicksSection } from "@/components/profile/ClicksSection";
+import { FollowSummary } from "@/components/profile/FollowSummary";
 import type { ProfileData } from "@/lib/profiles-data";
 
 /**
@@ -103,6 +105,8 @@ export function PublicProfileClient({ profile }: { profile: ProfileData }) {
             </div>
             <BadgeRow profile={profile} />
             <TrustScoreBreakdown profile={profile} />
+            <FollowSummary userId={profile.slug} isSelf={isSelf} />
+            <ClicksSection userId={profile.slug} includeDrafts={false} />
             <ReviewsSection profile={profile} />
             <TravelHistorySection profile={profile} />
 
