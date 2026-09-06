@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { VerificationSubmitModal } from "@/components/auth/VerificationSubmitModal";
 
 /**
  * "GoTogether Verification Required Interstitial" — a second, later gate
@@ -13,9 +14,9 @@ import { useAuth } from "@/lib/auth-context";
  * same "one shared overlay, not five one-offs" pattern as AuthModal.
  */
 export function VerificationRequiredInterstitial() {
-  const { verificationModal, verificationActions } = useAuth();
+  const { user, verificationModal, verificationActions } = useAuth();
   const { open } = verificationModal;
-  const [starting, setStarting] = useState(false);
+  const [submitModalOpen, setSubmitModalOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -34,14 +35,21 @@ export function VerificationRequiredInterstitial() {
   if (!open) return null;
 
   function handleClose() {
-    setStarting(false);
+    setSubmitModalOpen(false);
     verificationActions.close();
   }
 
-  async function handleStart() {
-    setStarting(true);
-    await verificationActions.startVerification();
-    setStarting(false);
+  function handleStart() {
+    setSubmitModalOpen(true);
+  }
+
+  function handleSubmitted() {
+    // A real submission moves the user into "pending" — resume whatever
+    // action was gated (requireVerification's "any signed-in session
+    // passes" rule already lets them through today regardless; this just
+    // makes sure a genuine submission also resumes it, not only a no-op).
+    setSubmitModalOpen(false);
+    verificationActions.startVerification();
   }
 
   return (
@@ -83,10 +91,9 @@ export function VerificationRequiredInterstitial() {
 
         <button
           onClick={handleStart}
-          disabled={starting}
-          className="w-full rounded-full bg-primary px-4 py-3.5 text-sm font-semibold text-white font-sans transition-opacity hover:opacity-90 disabled:opacity-70"
+          className="w-full rounded-full bg-primary px-4 py-3.5 text-sm font-semibold text-white font-sans transition-opacity hover:opacity-90"
         >
-          {starting ? "Submitting…" : "Start Verification"}
+          Start Verification
         </button>
 
         <p className="mt-4 text-[11.5px] leading-relaxed text-text-muted">
@@ -97,6 +104,14 @@ export function VerificationRequiredInterstitial() {
           </a>
         </p>
       </div>
+
+      {submitModalOpen && user && (
+        <VerificationSubmitModal
+          userId={user.id}
+          onClose={() => setSubmitModalOpen(false)}
+          onSubmitted={handleSubmitted}
+        />
+      )}
     </div>
   );
 }

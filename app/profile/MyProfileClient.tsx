@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useAuth, verificationStatusLabel } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import {
   ProfileHeader,
   TrustStrip,
@@ -18,6 +18,7 @@ import type { ProfileData } from "@/lib/profiles-data";
 import { TravelCompanySection } from "@/components/profile/TravelCompanySection";
 import { ClicksSection } from "@/components/profile/ClicksSection";
 import { FollowSummary } from "@/components/profile/FollowSummary";
+import { VerificationStatusRow } from "@/components/profile/VerificationStatusRow";
 
 /**
  * My Profile — Hybrid IA from the approved Personal User Area Blueprint:
@@ -96,23 +97,7 @@ export function MyProfileClient() {
               }
             />
 
-            <div className="flex items-center justify-between rounded-2xl border border-border px-5 py-3.5">
-              <span className="text-[12.5px] font-semibold text-text-secondary">Verification status</span>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[12px] font-bold ${
-                    user.verificationStatus === "id_verified" ? "text-trust-fg" : "text-text-tertiary"
-                  }`}
-                >
-                  {verificationStatusLabel(user.verificationStatus)}
-                </span>
-                {user.verificationStatus !== "id_verified" && (
-                  <Link href="/settings" className="text-[11.5px] font-semibold text-primary hover:underline">
-                    Complete →
-                  </Link>
-                )}
-              </div>
-            </div>
+            <VerificationStatusRow userId={user.id} />
 
             <TravelCompanySection />
 
