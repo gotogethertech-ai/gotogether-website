@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useAuth, verificationStatusLabel } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
+import { getVerificationState, type VerificationState } from "@/lib/real-verification";
+import { VerificationSubmitModal } from "@/components/auth/VerificationSubmitModal";
 
 /**
  * Settings, per "GoTogether Settings Page.dc.html": Account / Notifications
@@ -15,18 +17,30 @@ import { useAuth, verificationStatusLabel } from "@/lib/auth-context";
  * matching how every other irreversible action site-wide requires one.
  */
 export function SettingsClient() {
-  const { user, isLoggedIn, loading, requireAuth, requireVerification, logout } = useAuth();
+  const { user, isLoggedIn, requireAuth, logout } = useAuth();
   const router = useRouter();
-  const authChecked = !loading && isLoggedIn;
+  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
 
   useEffect(() => {
-    if (loading || isLoggedIn) return;
-    requireAuth("view your settings", () => {});
-  }, [loading, isLoggedIn, requireAuth]);
+    if (isLoggedIn) return;
+    requireAuth("view your settings", () => setAuthChecked(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [tripReminders, setTripReminders] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [verificationState, setVerificationState] = useState<VerificationState | null>(null);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+
+  const loadVerification = () => {
+    if (user) getVerificationState(user.id).then(setVerificationState);
+  };
+
+  useEffect(() => {
+    loadVerification();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (!authChecked || !user) {
     return (
@@ -54,13 +68,24 @@ export function SettingsClient() {
             <SettingsRow
               id="verification"
               title="Verification status"
+              subtitle={
+                verificationState?.kind === "rejected" && verificationState.reason
+                  ? `Reason: ${verificationState.reason}`
+                  : undefined
+              }
               action={
-                <button
-                  onClick={() => requireVerification(() => {})}
-                  className="text-[12px] font-semibold text-primary hover:underline"
-                >
-                  {verificationStatusLabel(user.verificationStatus)} · View
-                </button>
+                verificationState?.kind === "verified" ? (
+                  <span className="text-[12px] font-semibold text-trust-fg">ID Verified</span>
+                ) : verificationState?.kind === "pending" ? (
+                  <span className="text-[12px] font-semibold text-text-tertiary">Pending review</span>
+                ) : (
+                  <button
+                    onClick={() => setVerificationModalOpen(true)}
+                    className="text-[12px] font-semibold text-primary hover:underline"
+                  >
+                    {verificationState?.kind === "rejected" ? "Resubmit →" : "Not verified · Verify now"}
+                  </button>
+                )
               }
             />
           </SettingsGroup>
@@ -165,6 +190,14 @@ export function SettingsClient() {
             </div>
           </div>
         </div>
+      )}
+
+      {verificationModalOpen && (
+        <VerificationSubmitModal
+          userId={user.id}
+          onClose={() => setVerificationModalOpen(false)}
+          onSubmitted={loadVerification}
+        />
       )}
     </>
   );

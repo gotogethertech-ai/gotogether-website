@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getPendingVerifications, type AdminVerificationListItem } from "@/lib/admin/data";
 import { approveVerification, rejectVerification, AlreadyDecidedError } from "@/lib/admin/mutations";
+import { getVerificationDocumentUrl } from "@/lib/real-verification";
 import { EmptyState, ErrorRetry, AdminButton, useLiveAnnouncer } from "@/components/admin/ui";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -45,6 +46,19 @@ export function VerificationQueueClient() {
 
   const selected = queue?.find((v) => v.id === selectedId) ?? null;
   const oldest = queue?.[0];
+
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setDocumentUrl(null);
+    if (!selected?.document_url) return;
+    let cancelled = false;
+    getVerificationDocumentUrl(selected.document_url).then((url) => {
+      if (!cancelled) setDocumentUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.document_url]);
 
   async function handleApprove() {
     if (!selected) return;
@@ -129,9 +143,17 @@ export function VerificationQueueClient() {
                 {selected.userName} · {selected.document_type ?? "Government ID"}
               </h2>
 
-              <div className="mb-4 grid grid-cols-2 gap-3">
-                <DocPlaceholder label="ID document" />
-                <DocPlaceholder label="Selfie" />
+              <div className="mb-4">
+                {selected.document_url ? (
+                  documentUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={documentUrl} alt="Submitted ID document" className="max-h-[320px] w-full rounded-xl border border-[oklch(90%_0.005_255)] object-contain bg-[oklch(97%_0.003_255)]" />
+                  ) : (
+                    <DocPlaceholder label="Loading document…" />
+                  )
+                ) : (
+                  <DocPlaceholder label="No document on file" />
+                )}
               </div>
 
               <dl className="mb-5 flex flex-col gap-2 text-[12.5px]">
