@@ -16,6 +16,8 @@ import {
 import { getRealProfileById } from "@/lib/real-profile";
 import type { ProfileData } from "@/lib/profiles-data";
 import { TravelCompanySection } from "@/components/profile/TravelCompanySection";
+import { ClicksSection } from "@/components/profile/ClicksSection";
+import { FollowSummary } from "@/components/profile/FollowSummary";
 
 /**
  * My Profile — Hybrid IA from the approved Personal User Area Blueprint:
@@ -26,15 +28,16 @@ import { TravelCompanySection } from "@/components/profile/TravelCompanySection"
  * rather than inlining everything here.
  */
 export function MyProfileClient() {
-  const { user, isLoggedIn, loading, requireAuth } = useAuth();
-  const authChecked = !loading && isLoggedIn;
+  const { user, isLoggedIn, requireAuth } = useAuth();
+  const [authChecked, setAuthChecked] = useState(() => isLoggedIn);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [profileError, setProfileError] = useState(false);
 
   useEffect(() => {
-    if (loading || isLoggedIn) return;
-    requireAuth("view your profile", () => {});
-  }, [loading, isLoggedIn, requireAuth]);
+    if (isLoggedIn) return;
+    requireAuth("view your profile", () => setAuthChecked(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -138,6 +141,10 @@ export function MyProfileClient() {
             </div>
 
             <BadgeRow profile={profile} />
+
+            <FollowSummary userId={user.id} isSelf />
+
+            <ClicksSection userId={user.id} includeDrafts />
 
             <ReviewsSection profile={profile} />
 
